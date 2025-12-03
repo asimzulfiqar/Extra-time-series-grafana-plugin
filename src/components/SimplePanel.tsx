@@ -51,6 +51,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const panelRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Graph);
   const [isEnlargeModalOpen, setIsEnlargeModalOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -71,8 +72,8 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
           exportToHTML(data.series, 'timeseries-data');
           break;
         case ExportFormat.Image:
-          if (panelRef.current) {
-            await exportToImage(panelRef.current, 'timeseries-panel');
+          if (contentRef.current) {
+            await exportToImage(contentRef.current, 'timeseries-panel');
           }
           break;
       }
@@ -161,7 +162,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
                   icon="file-alt"
                   fullWidth
                 >
-                  Export to CSV
+                  CSV
                 </Button>
                 <Button
                   size="sm"
@@ -170,7 +171,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
                   icon="file-copy-alt"
                   fullWidth
                 >
-                  Export to HTML
+                  HTML
                 </Button>
                 <Button
                   size="sm"
@@ -179,7 +180,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
                   icon="camera"
                   fullWidth
                 >
-                  Export as Image
+                  Image
                 </Button>
               </div>
             )}
@@ -188,7 +189,9 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
       </div>
 
       {/* Panel Content */}
-      {renderContent(width, height)}
+      <div ref={contentRef}>
+        {renderContent(width, height)}
+      </div>
 
       {/* Enlarge Modal */}
       {isEnlargeModalOpen && (
@@ -199,11 +202,11 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
         >
           <div
             className={css`
-              width: 85vw;
-              height: 75vh;
+              width: 100vw;
+              height: 100vh;
             `}
           >
-            {renderContent(window.innerWidth * 0.85, window.innerHeight * 0.75)}
+            {renderContent(window.innerWidth, window.innerHeight - 100)}
           </div>
         </Modal>
       )}

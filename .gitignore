@@ -46,7 +46,7 @@ ci/
 .eslintcache
 
 node_modules/
-dist/
+/dist/
 .idea/
 .vscode/
 .DS_Store

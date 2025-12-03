@@ -10,42 +10,52 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
     return;
   }
 
-  let csvContent = '';
+  // Find time field and value fields across all series
+  const timeField = series[0].fields.find((f) => f.type === 'time');
+  if (!timeField) {
+    console.warn('No time field found');
+    return;
+  }
 
-  series.forEach((dataFrame, seriesIndex) => {
-    if (seriesIndex > 0) {
-      csvContent += '\n\n';
-    }
+  // Build headers: Time, Series1, Series2, etc.
+  let csvContent = 'Time';
+  series.forEach((dataFrame) => {
+    const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
+    valueFields.forEach((field) => {
+      const seriesName = dataFrame.name || 'Series';
+      const fieldName = field.name || 'Value';
+      csvContent += `,${seriesName} - ${fieldName}`;
+    });
+  });
+  csvContent += '\n';
 
-    if (dataFrame.name) {
-      csvContent += `Series: ${dataFrame.name}\n`;
-    }
+  // Build rows: for each timestamp, show all series values
+  const rowCount = timeField.values.length;
+  for (let i = 0; i < rowCount; i++) {
+    const timestamp = timeField.values[i];
+    csvContent += new Date(timestamp).toISOString();
 
-    // Headers
-    const headers = dataFrame.fields.map((field) => field.name || 'Unknown');
-    csvContent += headers.join(',') + '\n';
-
-    // Data rows
-    const rowCount = dataFrame.length;
-    for (let i = 0; i < rowCount; i++) {
-      const row = dataFrame.fields.map((field) => {
+    series.forEach((dataFrame) => {
+      const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
+      valueFields.forEach((field) => {
         const value = field.values[i];
         if (value === null || value === undefined) {
-          return '';
+          csvContent += ',';
+        } else if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          csvContent += `,"${value.replace(/"/g, '""')}"`;
+        } else {
+          csvContent += `,${value}`;
         }
-        if (field.type === 'time') {
-          return new Date(value).toISOString();
-        }
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          return `"${value.replace(/"/g, '""')}"`;
-        }
-        return value;
       });
-      csvContent += row.join(',') + '\n';
-    }
-  });
+    });
 
-  downloadFile(csvContent, `${filename}.csv`, 'text/csv');
+    csvContent += '\n';
+  }
+
+  // Open CSV in new tab
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 };
 
 /**
@@ -54,6 +64,13 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
 export const exportToHTML = (series: DataFrame[], filename: string) => {
   if (!series || series.length === 0) {
     console.warn('No data to export');
+    return;
+  }
+
+  // Find time field
+  const timeField = series[0].fields.find((f) => f.type === 'time');
+  if (!timeField) {
+    console.warn('No time field found');
     return;
   }
 
@@ -69,21 +86,20 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
       padding: 20px;
       background: #f5f5f5;
     }
-    .series {
-      margin-bottom: 40px;
+    .container {
       background: white;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    h2 {
+    h1 {
       color: #333;
       margin-top: 0;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 20px;
     }
     th {
       background: #4a5568;
@@ -91,10 +107,18 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
       padding: 12px;
       text-align: left;
       font-weight: 600;
+      border-right: 1px solid #2d3748;
+    }
+    th:last-child {
+      border-right: none;
     }
     td {
       padding: 10px 12px;
       border-bottom: 1px solid #e2e8f0;
+      border-right: 1px solid #e2e8f0;
+    }
+    td:last-child {
+      border-right: none;
     }
     tr:hover {
       background: #f7fafc;
@@ -102,64 +126,65 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
     .timestamp {
       font-family: monospace;
       color: #666;
+      white-space: nowrap;
     }
   </style>
 </head>
 <body>
-  <h1>Time Series Data Export</h1>
-  <p>Exported on: ${new Date().toLocaleString()}</p>
-`;
-
-  series.forEach((dataFrame, index) => {
-    htmlContent += `
-  <div class="series">
-    <h2>${dataFrame.name || `Series ${index + 1}`}</h2>
+  <div class="container">
+    <h1>Time Series Data Export</h1>
+    <p>Exported on: ${new Date().toLocaleString()}</p>
     <table>
       <thead>
         <tr>
+          <th>Time</th>
 `;
 
-    dataFrame.fields.forEach((field) => {
-      htmlContent += `          <th>${field.name || 'Unknown'}</th>\n`;
+  // Build headers for all series
+  series.forEach((dataFrame) => {
+    const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
+    valueFields.forEach((field) => {
+      const seriesName = dataFrame.name || 'Series';
+      const fieldName = field.name || 'Value';
+      htmlContent += `          <th>${seriesName} - ${fieldName}</th>\n`;
     });
+  });
 
-    htmlContent += `        </tr>
+  htmlContent += `        </tr>
       </thead>
       <tbody>
 `;
 
-    const rowCount = dataFrame.length;
-    for (let i = 0; i < rowCount; i++) {
-      htmlContent += '        <tr>\n';
-      dataFrame.fields.forEach((field) => {
+  // Build rows: for each timestamp, show all series values
+  const rowCount = timeField.values.length;
+  for (let i = 0; i < rowCount; i++) {
+    const timestamp = timeField.values[i];
+    htmlContent += `        <tr>\n`;
+    htmlContent += `          <td><span class="timestamp">${new Date(timestamp).toLocaleString()}</span></td>\n`;
+
+    series.forEach((dataFrame) => {
+      const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
+      valueFields.forEach((field) => {
         const value = field.values[i];
-        let displayValue = '';
-
-        if (value !== null && value !== undefined) {
-          if (field.type === 'time') {
-            displayValue = `<span class="timestamp">${new Date(value).toLocaleString()}</span>`;
-          } else {
-            displayValue = String(value);
-          }
-        }
-
+        const displayValue = value !== null && value !== undefined ? String(value) : '';
         htmlContent += `          <td>${displayValue}</td>\n`;
       });
-      htmlContent += '        </tr>\n';
-    }
+    });
 
-    htmlContent += `      </tbody>
+    htmlContent += `        </tr>\n`;
+  }
+
+  htmlContent += `      </tbody>
     </table>
   </div>
-`;
-  });
-
-  htmlContent += `
 </body>
 </html>
 `;
 
-  downloadFile(htmlContent, `${filename}.html`, 'text/html');
+  // Open HTML in new tab
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 };
 
 /**
@@ -177,13 +202,7 @@ export const exportToImage = async (element: HTMLElement, filename: string) => {
     canvas.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${filename}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        window.open(url, '_blank');
       }
     });
   } catch (error) {
@@ -201,8 +220,13 @@ const downloadFile = (content: string, filename: string, mimeType: string) => {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
+  link.style.display = 'none';
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  
+  // Cleanup immediately after click
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 100);
 };
