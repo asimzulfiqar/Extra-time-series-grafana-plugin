@@ -1,9 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { PanelProps } from '@grafana/data';
-import { LegendDisplayMode } from '@grafana/schema';
 import { SimpleOptions, ViewMode, ExportFormat } from 'types';
 import { css, cx } from '@emotion/css';
-import { useStyles2, useTheme2, Button, Modal, TimeSeries, VizLegendOptions } from '@grafana/ui';
+import { useStyles2, useTheme2, Button, Modal, TimeSeries } from '@grafana/ui';
 import { PanelDataErrorView } from '@grafana/runtime';
 import { TableView } from './TableView';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
@@ -47,7 +46,16 @@ const getStyles = () => {
   };
 };
 
-export const SimplePanel: React.FC<Props> = ({ options, data, width, height, timeRange, timeZone, fieldConfig, id }) => {
+export const SimplePanel: React.FC<Props> = ({ 
+  options, 
+  data, 
+  width, 
+  height, 
+  timeRange, 
+  timeZone, 
+  fieldConfig, 
+  id,
+}) => {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -91,67 +99,15 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
       return <TableView data={data.series} width={contentWidth} height={contentHeight} theme={theme} />;
     }
 
-    // Time series graph view with full native features
-    // Apply colors to series fields if not already configured
-    const colorPalette = [
-      '#7EB26D', // green
-      '#EAB839', // yellow
-      '#6ED0E0', // cyan
-      '#EF843C', // orange
-      '#E24D42', // red
-      '#1F78C1', // blue
-      '#BA43A9', // purple
-      '#705DA0', // violet
-    ];
-
-    const framesWithColors = data.series.map((frame, frameIndex) => {
-      const newFields = frame.fields.map((field, fieldIndex) => {
-        // Only apply color to value fields (not time fields)
-        if (field.type === 'number') {
-          const colorIndex = (frameIndex * 10 + fieldIndex) % colorPalette.length;
-          return {
-            ...field,
-            config: {
-              ...field.config,
-              color: {
-                mode: 'fixed',
-                fixedColor: colorPalette[colorIndex],
-              },
-              // Remove any threshold-based coloring
-              thresholds: undefined,
-            },
-          };
-        }
-        return field;
-      });
-
-      return {
-        ...frame,
-        fields: newFields,
-      };
-    });
-
-    const legendConfig: VizLegendOptions = {
-      displayMode: LegendDisplayMode.List,
-      placement: 'bottom',
-      showLegend: true,
-      calcs: [],
-    } as VizLegendOptions;
-
-    const timeSeriesOptions = {
-      tooltip: { mode: 'single' as any, sort: 'none' },
-      ...options,
-    };
-
+    // Time series graph view - pass all props to TimeSeries for full native functionality
     return (
       <TimeSeries
         width={contentWidth}
         height={contentHeight - 60}
         timeRange={timeRange}
         timeZone={timeZone}
-        frames={framesWithColors}
-        options={timeSeriesOptions}
-        legend={legendConfig}
+        frames={data.series}
+        legend={{ displayMode: 'list' as any, placement: 'bottom', showLegend: true, calcs: [] }}
       />
     );
   };
