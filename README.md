@@ -1,4 +1,4 @@
-# Extra Time series panel (org1-extratimeseries-panel)
+# Extra Time series panel (asimzulfiqar-extratimeseries-panel)
 
 Extra Time series is a custom Grafana panel that extends the Time series visualization with:
 - Export (CSV, HTML, Image)
@@ -35,13 +35,13 @@ The distributable plugin lives in `dist/`:
 
 Option A — Local filesystem install:
 - Copy the `dist/` folder to Grafana’s plugins directory as a folder named after the plugin id:
-  - Linux: `/var/lib/grafana/plugins/org1-extratimeseries-panel`
-  - Windows: `C:\\Program Files\\GrafanaLabs\\grafana\\data\\plugins\\org1-extratimeseries-panel`
+  - Linux: `/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel`
+  - Windows: `C:\\Program Files\\GrafanaLabs\\grafana\\data\\plugins\\asimzulfiqar-extratimeseries-panel`
 
 - In `grafana.ini`, allow unsigned plugin:
   ```ini
   [plugins]
-  allow_loading_unsigned_plugins = org1-extratimeseries-panel
+  allow_loading_unsigned_plugins = asimzulfiqar-extratimeseries-panel
   ```
 
 - Restart Grafana and navigate to Administration → Plugins to verify it appears.
@@ -49,16 +49,16 @@ Option A — Local filesystem install:
 Option B — Docker:
 - Mount the plugin folder into Grafana container:
   ```bash
-  docker run -d -p 3000:3000 \\
-    -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=org1-extratimeseries-panel \\
-    -v $(pwd)/dist:/var/lib/grafana/plugins/org1-extratimeseries-panel \\
+  docker run -d -p 3000:3000 \
+    -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel \
+    -v $(pwd)/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel \
     --name grafana grafana/grafana:latest
   ```
   PowerShell variant:
   ```powershell
   docker run -d -p 3000:3000 \
-    -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=org1-extratimeseries-panel \
-    -v ${PWD}/dist:/var/lib/grafana/plugins/org1-extratimeseries-panel \
+    -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel \
+    -v ${PWD}/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel \
     --name grafana grafana/grafana:latest
   ```
 
@@ -86,7 +86,7 @@ git init
 git add .
 git commit -m "feat: initial Extra Time series panel"
 # Replace with your repo URL
-git remote add origin https://github.com/<your-username>/org1-extratimeseries-panel.git
+git remote add origin https://github.com/<your-username>/asimzulfiqar-extratimeseries-panel.git
 git branch -M main
 git push -u origin main
 ```

@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const TableView: React.FC<Props> = ({ data, width, height, theme }) => {
-  if (!data || data.length === 0) {
+  if (!data || Array.isArray(data) && data.length === 0) {
     return (
       <div
         className={css`
@@ -29,11 +29,11 @@ export const TableView: React.FC<Props> = ({ data, width, height, theme }) => {
   // Find time field from first series
   const timeField = data[0].fields.find((f) => f.type === 'time');
   if (!timeField) {
-    return <div>No time field found</div>;
+    return (<div>No time field found</div>);
   }
 
   // Build columns: Time, then each series value field
-  const columns: { header: string; getValue: (row: number) => any }[] = [];
+  const columns: Array<{ header: string; getValue: (row: number) => any }> = [];
   columns.push({
     header: 'Time',
     getValue: (row) => {
@@ -48,8 +48,12 @@ export const TableView: React.FC<Props> = ({ data, width, height, theme }) => {
         header: `${dataFrame.name || 'Series'} - ${field.name || 'Value'}`,
         getValue: (row) => {
           const value = field.values[row];
-          if (value === null || value === undefined) return '';
-          if (typeof value === 'number') return value.toFixed(2);
+          if (value === null || value === undefined) {
+            return '';
+          }
+          if (typeof value === 'number') {
+            return value.toFixed(2);
+          }
           return String(value);
         },
       });

@@ -211,22 +211,3 @@ export const exportToImage = async (element: HTMLElement, filename: string) => {
   }
 };
 
-/**
- * Helper function to download a file
- */
-const downloadFile = (content: string, filename: string, mimeType: string) => {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  
-  // Cleanup immediately after click
-  setTimeout(() => {
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, 100);
-};

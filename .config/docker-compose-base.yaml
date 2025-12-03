@@ -1,7 +1,7 @@
 services:
   grafana:
     user: root
-    container_name: 'org1-extratimeseries-panel'
+    container_name: 'asimzulfiqar-extratimeseries-panel'
 
     build:
       context: .
@@ -13,13 +13,13 @@ services:
     ports:
       - 3000:3000/tcp
     volumes:
-      - ../dist:/var/lib/grafana/plugins/org1-extratimeseries-panel
+      - ../dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
       - ../provisioning:/etc/grafana/provisioning
-      - ..:/root/org1-extratimeseries-panel
+      - ..:/root/asimzulfiqar-extratimeseries-panel
 
     environment:
       NODE_ENV: development
-      GF_LOG_FILTERS: plugin.org1-extratimeseries-panel:debug
+      GF_LOG_FILTERS: plugin.asimzulfiqar-extratimeseries-panel:debug
       GF_LOG_LEVEL: debug
       GF_DATAPROXY_LOGGING: 1
-      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: org1-extratimeseries-panel
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: asimzulfiqar-extratimeseries-panel

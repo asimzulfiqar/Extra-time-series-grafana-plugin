@@ -51,7 +51,7 @@
         }
       ],
       "title": "Sample Panel Title",
-      "type": "org1-extratimeseries-panel"
+      "type": "asimzulfiqar-extratimeseries-panel"
     },
     {
       "datasource": {
@@ -82,7 +82,7 @@
         }
       ],
       "title": "Sample Panel Title",
-      "type": "org1-extratimeseries-panel"
+      "type": "asimzulfiqar-extratimeseries-panel"
     }
   ],
   "refresh": "",
