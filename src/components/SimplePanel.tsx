@@ -129,7 +129,28 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
         )}
 
         {options.showEnlargeButton && (
-          <Button size="sm" variant="secondary" onClick={() => setIsEnlargeModalOpen(true)} icon="expand-arrows">
+          <Button
+            size="sm"
+            variant="secondary"
+            icon="expand-arrows"
+            onClick={() => {
+              // Try to get dashboard UID and panel ID from URL
+              const urlParams = new URLSearchParams(window.location.search);
+              const dashboardUid = urlParams.get('uid') || window.location.pathname.split('/d/')[1]?.split('/')[0];
+              const orgId = urlParams.get('orgId') || '1';
+              const panelId = id ? `panel-${id}` : '';
+              // Use current time range if available
+              const from = timeRange?.from?.valueOf() || 'now-6h';
+              const to = timeRange?.to?.valueOf() || 'now';
+              const tz = timeZone || 'browser';
+              if (dashboardUid && panelId) {
+                const url = `/d/${dashboardUid}/_?orgId=${orgId}&from=${from}&to=${to}&timezone=${tz}&viewPanel=${panelId}`;
+                window.location.href = url;
+              } else {
+                setIsEnlargeModalOpen(true);
+              }
+            }}
+          >
             Enlarge
           </Button>
         )}
@@ -193,10 +214,10 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
         {renderContent(width, height)}
       </div>
 
-      {/* Enlarge Modal */}
+      {/* Enlarge Modal - fullscreen, no action bar, close button */}
       {isEnlargeModalOpen && (
         <Modal
-          title="Enhanced Panel - Enlarged View"
+          title={null}
           isOpen={isEnlargeModalOpen}
           onDismiss={() => setIsEnlargeModalOpen(false)}
         >
@@ -204,9 +225,38 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
             className={css`
               width: 100vw;
               height: 100vh;
+              background: ${theme.colors.background.primary};
+              position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
             `}
           >
-            {renderContent(window.innerWidth, window.innerHeight - 100)}
+            <Button
+              size="md"
+              variant="destructive"
+              icon="times"
+              className={css`
+                position: absolute;
+                top: 24px;
+                right: 32px;
+                z-index: 10;
+              `}
+              onClick={() => setIsEnlargeModalOpen(false)}
+            >
+              Close
+            </Button>
+            <div
+              className={css`
+                width: 90vw;
+                height: 85vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              `}
+            >
+              {renderContent(window.innerWidth * 0.9, window.innerHeight * 0.85)}
+            </div>
           </div>
         </Modal>
       )}
