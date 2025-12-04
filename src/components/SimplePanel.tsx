@@ -55,6 +55,7 @@ export const SimplePanel: React.FC<Props> = ({
   timeZone, 
   fieldConfig, 
   id,
+  onChangeTimeRange,
 }) => {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
@@ -136,7 +137,7 @@ export const SimplePanel: React.FC<Props> = ({
       return <TableView data={data.series} width={contentWidth} height={contentHeight} theme={theme} />;
     }
 
-    // Time series graph view - pass all props to TimeSeries for full native functionality
+    // Time series graph view
     return (
       <TimeSeries
         width={contentWidth}
@@ -144,7 +145,12 @@ export const SimplePanel: React.FC<Props> = ({
         timeRange={timeRange}
         timeZone={timeZone}
         frames={data.series}
-        legend={{ displayMode: 'list' as any, placement: 'bottom', showLegend: true, calcs: [] }}
+        legend={{
+          displayMode: (options.legend?.displayMode || 'list') as any,
+          placement: (options.legend?.placement || 'bottom') as any,
+          showLegend: true,
+          calcs: [],
+        }}
       />
     );
   };

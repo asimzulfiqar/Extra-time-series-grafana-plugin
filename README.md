@@ -1,33 +1,121 @@
-# Extra Time series panel (asimzulfiqar-extratimeseries-panel)
+# Extra Time Series Panel for Grafana
 
-Extra Time series is a custom Grafana panel that extends the Time series visualization with:
-- Export (CSV, HTML, Image)
-- Enlarge modal view
-- Table view toggle
+A custom Grafana panel plugin that extends the native Time Series panel with additional export and viewing features.
 
-This plugin is currently unsigned for easy development and internal distribution.
+## Features
 
-## Install and Run (development)
+### ✅ Export Capabilities
+- **CSV Export** - Export time series data to CSV format (opens in new tab)
+- **HTML Export** - Export data as formatted HTML table (opens in new tab)
+- **Image Export** - Capture panel as PNG image using html2canvas (opens in new tab)
 
-Use WSL (Debian) as you already do:
+### ✅ Enhanced Viewing
+- **Enlarge View** - Open panel in new browser tab with full dashboard context
+  - Preserves current time range
+  - Works with nginx reverse proxy (dynamic base path detection)
+  - Maintains timezone settings
+- **Table View** - Toggle between graph and table visualization
+  - Shows all series in columns
+  - Includes timestamps
 
-```bash
-cd /mnt/f/LRZ/Grafana/custom-panel/org1-bmcustom-panel
-npm install
-npm run dev
-```
+### ✅ Native Time Series Features
+- **Color-coded series** - Each series gets distinct colors from palette
+- **Legend** - Always visible with configurable display mode and placement
+- **Time range sync** - Updates from dashboard time picker
+- **Tooltips** - Configurable hover mode (single/multi)
+- **All standard time series options** - Line style, fill opacity, point visibility, etc.
 
-By default, this builds to `dist/` and the webpack dev server watches for changes. Refresh your Grafana browser tab to see updates.
+## Configuration
 
-## Build (production)
+### Panel Options
+- **Show Export Button** - Enable/disable export menu
+- **Show Enlarge Button** - Enable/disable enlarge functionality  
+- **Show Table View Button** - Enable/disable table view toggle
+
+### Legend Options
+- **Display Mode** - List, table, or hidden
+- **Placement** - Bottom, right, or top
+
+### Tooltip Options
+- **Mode** - Single series, all series, or none
+
+## Known Limitations
+
+### Time Range Zoom
+**Drag-to-zoom is not available** in this plugin. This is due to architectural limitations:
+
+- Grafana's `XAxisInteractionAreaPlugin` (which handles drag-to-zoom) is only available in `@grafana/ui/internal` 
+- Internal Grafana components are not exported in the published `@grafana/ui` package
+- Implementing drag-to-zoom would require copying 2000+ lines of Grafana core code
+
+**Workaround:** Use Grafana's native time range picker in the dashboard header to zoom in/out.
+
+## Installation
+
+1. Copy the plugin to your Grafana plugins directory:
+   ```bash
+   cp -r dist/ /var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
+   ```
+
+2. Restart Grafana:
+   ```bash
+   systemctl restart grafana-server
+   ```
+
+3. Enable the plugin in Grafana configuration if needed (for unsigned plugins):
+   ```ini
+   [plugins]
+   allow_loading_unsigned_plugins = asimzulfiqar-extratimeseries-panel
+   ```
+
+## Development
+
+### Build (Production)
 
 ```bash
 cd /mnt/f/LRZ/Grafana/custom-panel/org1-bmcustom-panel
 npm run build
 ```
 
-The distributable plugin lives in `dist/`:
-- `dist/module.js`
+The distributable plugin will be in `dist/`.
+
+### Development Mode
+
+```bash
+npm run dev
+```
+
+Webpack will watch for changes. Refresh your Grafana browser tab to see updates.
+
+### Using WSL for Build (Windows)
+
+If you encounter build issues on Windows, use WSL:
+
+```bash
+wsl
+cd /mnt/f/LRZ/Grafana/custom-panel/org1-bmcustom-panel
+npm install
+npm run build
+```
+
+## Technical Details
+
+- **Plugin ID**: `asimzulfiqar-extratimeseries-panel`
+- **Author**: Asim Zulfiqar
+- **License**: Apache-2.0
+- **Grafana Version**: 12.3.0+
+
+### Color Palette
+
+The plugin uses a fixed color palette to ensure consistent series colors:
+```javascript
+['#7EB26D', '#EAB839', '#6ED0E0', '#EF843C', '#E24D42', 
+ '#1F78C1', '#BA43A9', '#705DA0', '#508642', '#CCA300']
+```
+
+## Support
+
+For issues or questions, refer to the Grafana plugin development documentation.
 - `dist/plugin.json`
 - Assets under `dist/`
 
