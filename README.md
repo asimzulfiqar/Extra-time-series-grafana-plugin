@@ -25,6 +25,17 @@ A custom Grafana panel plugin that extends the native Time Series panel with add
 - **Tooltips** - Configurable hover mode (single/multi)
 - **All standard time series options** - Line style, fill opacity, point visibility, etc.
 
+### ✅ Drag-to-Zoom with Keyboard Shortcuts
+- **Drag on graph** - Instantly zoom into the selected time range (minimum 20px drag)
+- **R key** - Reset zoom to original time range  
+- **+ or = key** - Zoom in by 50% (centered)
+- **- or _ key** - Zoom out by 50% (centered)
+- **Double-click** - Zoom in by 50% at center
+- **Shift + Double-click** - Zoom out by 50%
+- **Zoom Help button** - Shows all available shortcuts
+
+> **How it works**: Simply click and drag horizontally across the graph. When you release the mouse, it automatically zooms into that time range. No need to press any keys!
+
 ## Configuration
 
 ### Panel Options
@@ -41,14 +52,16 @@ A custom Grafana panel plugin that extends the native Time Series panel with add
 
 ## Known Limitations
 
-### Time Range Zoom
-**Drag-to-zoom is not available** in this plugin. This is due to architectural limitations:
+**Advanced drag-to-zoom functionality is not available** in this plugin because:
 
-- Grafana's `XAxisInteractionAreaPlugin` (which handles drag-to-zoom) is only available in `@grafana/ui/internal` 
-- Internal Grafana components are not exported in the published `@grafana/ui` package
-- Implementing drag-to-zoom would require copying 2000+ lines of Grafana core code
+- `XAxisInteractionAreaPlugin` (drag-to-pan on x-axis) is not exported from the published `@grafana/ui` package
+- It's only available in Grafana's internal source code
+- The GitHub issue #71976 was about a bug **within Grafana core**, not external plugins
+- External plugins cannot access internal Grafana components
 
-**Workaround:** Use Grafana's native time range picker in the dashboard header to zoom in/out.
+**Workarounds Available**:
+- Use the **keyboard shortcuts** listed above (R, +, -, double-click)
+- Use Grafana's time range picker in the dashboard header
 
 ## Installation
 

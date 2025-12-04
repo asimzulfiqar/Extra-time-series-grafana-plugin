@@ -66,12 +66,208 @@ export const SimplePanel: React.FC<Props> = ({
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [currentTimeRange, setCurrentTimeRange] = useState(timeRange);
   const [currentTimeZone, setCurrentTimeZone] = useState(timeZone);
+  const [originalTimeRange] = useState(timeRange); // Store original for reset
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
+  const graphRef = useRef<HTMLDivElement>(null);
 
   // Update current time range and timezone whenever props change
   useEffect(() => {
     setCurrentTimeRange(timeRange);
     setCurrentTimeZone(timeZone);
   }, [timeRange, timeZone]);
+
+  const zoomByPercentage = React.useCallback((zoomFactor: number) => {
+    if (!onChangeTimeRange) {
+      return;
+    }
+
+    const from = typeof currentTimeRange.from === 'object' 
+      ? currentTimeRange.from.valueOf() 
+      : new Date(currentTimeRange.from).valueOf();
+    const to = typeof currentTimeRange.to === 'object' 
+      ? currentTimeRange.to.valueOf() 
+      : new Date(currentTimeRange.to).valueOf();
+
+    const range = to - from;
+    const adjustment = range * Math.abs(zoomFactor) / 2;
+
+    if (zoomFactor > 0) {
+      // Zoom in
+      onChangeTimeRange({
+        from: from + adjustment,
+        to: to - adjustment,
+      });
+    } else {
+      // Zoom out
+      onChangeTimeRange({
+        from: from - adjustment,
+        to: to + adjustment,
+      });
+    }
+  }, [currentTimeRange, onChangeTimeRange]);
+
+  // Convert pixel position to timestamp
+  const pixelToTimestamp = React.useCallback((pixelX: number, graphWidth: number): number => {
+    const from = typeof currentTimeRange.from === 'object' 
+      ? currentTimeRange.from.valueOf() 
+      : new Date(currentTimeRange.from).valueOf();
+    const to = typeof currentTimeRange.to === 'object' 
+      ? currentTimeRange.to.valueOf() 
+      : new Date(currentTimeRange.to).valueOf();
+    
+    const timeRange = to - from;
+    const ratio = pixelX / graphWidth;
+    return from + (timeRange * ratio);
+  }, [currentTimeRange]);
+
+  // Handle mouse selection
+  const handleMouseDown = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!graphRef.current || e.button !== 0) {
+      return;
+    }
+    
+    // Focus the graph when clicking on it
+    if (graphRef.current && 'focus' in graphRef.current) {
+      (graphRef.current as HTMLDivElement).focus();
+    }
+    
+    const rect = graphRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    
+    setIsSelecting(true);
+    setSelectionStart(x);
+    setSelectionEnd(x);
+  }, []);
+
+  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isSelecting || !graphRef.current) {
+      return;
+    }
+    
+    const rect = graphRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    
+    // Clamp to graph bounds
+    const clampedX = Math.max(0, Math.min(x, rect.width));
+    setSelectionEnd(clampedX);
+  }, [isSelecting]);
+
+  const handleMouseUp = React.useCallback(() => {
+    setIsSelecting(false);
+    
+    if (selectionStart !== null && selectionEnd !== null && graphRef.current && onChangeTimeRange) {
+      const dragDistance = Math.abs(selectionEnd - selectionStart);
+      
+      // Only zoom if drag is significant (> 20 pixels to avoid accidental clicks)
+      if (dragDistance > 20) {
+        const rect = graphRef.current.getBoundingClientRect();
+        const graphWidth = rect.width;
+        const startTime = pixelToTimestamp(Math.min(selectionStart, selectionEnd), graphWidth);
+        const endTime = pixelToTimestamp(Math.max(selectionStart, selectionEnd), graphWidth);
+        
+        console.log('Zooming directly to:', new Date(startTime), new Date(endTime), 'pixels:', dragDistance);
+        
+        // Zoom directly on mouse release
+        onChangeTimeRange({
+          from: startTime,
+          to: endTime,
+        });
+        
+        // Clear selection after zoom
+        setSelectionStart(null);
+        setSelectionEnd(null);
+      } else {
+        // Clear if selection was too small
+        console.log('Selection too small, clearing');
+        setSelectionStart(null);
+        setSelectionEnd(null);
+      }
+    } else {
+      // Clear if no valid selection
+      setSelectionStart(null);
+      setSelectionEnd(null);
+    }
+  }, [selectionStart, selectionEnd, pixelToTimestamp, onChangeTimeRange]);
+
+
+
+  // Keyboard shortcuts for zoom
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      console.log('Key pressed:', e.key, 'Ctrl:', e.ctrlKey, 'Meta:', e.metaKey);
+      
+      // Check if panel or graph is focused
+      const isPanelFocused = panelRef.current?.contains(document.activeElement);
+      const isGraphFocused = graphRef.current?.contains(document.activeElement);
+      const activeElement = document.activeElement;
+      
+      console.log('Focus check - Panel:', isPanelFocused, 'Graph:', isGraphFocused, 'Active element:', activeElement?.tagName, activeElement?.className);
+      
+      if (!isPanelFocused && !isGraphFocused) {
+        console.log('Not focused, ignoring key press');
+        return;
+      }
+
+      // Don't interfere with browser shortcuts
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        console.log('Modifier key pressed, ignoring');
+        return;
+      }
+
+      console.log('Processing key:', e.key);
+
+      switch (e.key.toLowerCase()) {
+        case 'r':
+          e.preventDefault();
+          console.log('R key handler triggered');
+          // Reset to original time range
+          if (onChangeTimeRange) {
+            const from = typeof originalTimeRange.raw.from === 'object' 
+              ? originalTimeRange.raw.from.valueOf() 
+              : new Date(originalTimeRange.raw.from).valueOf();
+            const to = typeof originalTimeRange.raw.to === 'object' 
+              ? originalTimeRange.raw.to.valueOf() 
+              : new Date(originalTimeRange.raw.to).valueOf();
+            onChangeTimeRange({
+              from,
+              to,
+            });
+          }
+          break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          // Zoom in 50%
+          zoomByPercentage(0.5);
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          // Zoom out 50%
+          zoomByPercentage(-0.5);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [onChangeTimeRange, originalTimeRange, zoomByPercentage]);
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (viewMode !== ViewMode.Graph) {
+      return;
+    }
+    
+    if (e.shiftKey) {
+      // Shift + double-click: zoom out
+      zoomByPercentage(-0.5);
+    } else {
+      // Double-click: zoom in
+      zoomByPercentage(0.5);
+    }
+  };
 
   if (data.series.length === 0) {
     return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsStringField />;
@@ -137,21 +333,66 @@ export const SimplePanel: React.FC<Props> = ({
       return <TableView data={data.series} width={contentWidth} height={contentHeight} theme={theme} />;
     }
 
-    // Time series graph view
+    // Time series graph view with zoom support
     return (
-      <TimeSeries
-        width={contentWidth}
-        height={contentHeight - 60}
-        timeRange={timeRange}
-        timeZone={timeZone}
-        frames={data.series}
-        legend={{
-          displayMode: (options.legend?.displayMode || 'list') as any,
-          placement: (options.legend?.placement || 'bottom') as any,
-          showLegend: true,
-          calcs: [],
-        }}
-      />
+      <div 
+        ref={graphRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
+        tabIndex={0}
+        className={css`
+          position: relative;
+          outline: none;
+          cursor: crosshair;
+          &:focus {
+            outline: 2px solid ${theme.colors.primary.border};
+            outline-offset: 2px;
+          }
+        `}
+      >
+        <TimeSeries
+          width={contentWidth}
+          height={contentHeight - 60}
+          timeRange={timeRange}
+          timeZone={timeZone}
+          frames={data.series}
+          legend={{
+            displayMode: (options.legend?.displayMode || 'list') as any,
+            placement: (options.legend?.placement || 'bottom') as any,
+            showLegend: true,
+            calcs: [],
+          }}
+        >
+          {(config, alignedDataFrame) => {
+            // You can add custom uPlot plugins here if needed in the future
+            return null;
+          }}
+        </TimeSeries>
+        
+        {/* Selection overlay - show during dragging AND after release */}
+        {selectionStart !== null && selectionEnd !== null && Math.abs(selectionEnd - selectionStart) > 5 && (
+          <div
+            className={css`
+              position: absolute;
+              top: 0;
+              left: ${Math.min(selectionStart, selectionEnd)}px;
+              width: ${Math.abs(selectionEnd - selectionStart)}px;
+              height: ${contentHeight - 60}px;
+              background: ${theme.colors.primary.main}33;
+              border-left: 2px solid ${theme.colors.primary.main};
+              border-right: 2px solid ${theme.colors.primary.main};
+              pointer-events: none;
+              ${!isSelecting && `
+                box-shadow: 0 0 10px ${theme.colors.primary.main}66;
+              `}
+            `}
+          />
+        )}
+
+      </div>
     );
   };
 
