@@ -90,6 +90,22 @@ export const SimplePanel: React.FC<Props> = ({
     }
   };
 
+  const handleEnlarge = () => {
+    // Get the base path from the current URL by finding everything before /d/
+    const currentPath = window.location.pathname;
+    const dashboardMatch = currentPath.match(/^(.*?)\/d\//);
+    const basePath = dashboardMatch ? dashboardMatch[1] : '';
+
+    // Get dashboard UID from the current URL
+    const dashboardMatch2 = currentPath.match(/\/d\/([^/?]+)/);
+    const dashboardUID = dashboardMatch2 ? dashboardMatch2[1] : '';
+
+    // Build the full dashboard URL with current time range and panel ID
+    const dashboardUrl = `${basePath}/d/${dashboardUID}?orgId=1&from=${encodeURIComponent(timeRange.from.toString())}&to=${encodeURIComponent(timeRange.to.toString())}&timezone=${encodeURIComponent(timeZone)}&viewPanel=${id}`;
+    
+    window.open(dashboardUrl, '_blank');
+  };
+
   const toggleViewMode = () => {
     setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph);
   };
@@ -141,23 +157,7 @@ export const SimplePanel: React.FC<Props> = ({
             size="sm"
             variant="secondary"
             icon="expand-arrows"
-            onClick={() => {
-              // Try to get dashboard UID and panel ID from URL
-              const urlParams = new URLSearchParams(window.location.search);
-              const dashboardUid = urlParams.get('uid') || window.location.pathname.split('/d/')[1]?.split('/')[0];
-              const orgId = urlParams.get('orgId') || '1';
-              const panelId = id ? `panel-${id}` : '';
-              // Use current time range if available
-              const from = timeRange?.from?.valueOf() || 'now-6h';
-              const to = timeRange?.to?.valueOf() || 'now';
-              const tz = timeZone || 'browser';
-              if (dashboardUid && panelId) {
-                const url = `/d/${dashboardUid}/_?orgId=${orgId}&from=${from}&to=${to}&timezone=${tz}&viewPanel=${panelId}`;
-                window.location.href = url;
-              } else {
-                setIsEnlargeModalOpen(true);
-              }
-            }}
+            onClick={handleEnlarge}
           >
             Enlarge
           </Button>
