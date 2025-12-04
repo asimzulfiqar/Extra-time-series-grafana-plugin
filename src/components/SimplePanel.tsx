@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { PanelProps } from '@grafana/data';
 import { SimpleOptions, ViewMode, ExportFormat } from 'types';
 import { css, cx } from '@emotion/css';
@@ -63,6 +63,14 @@ export const SimplePanel: React.FC<Props> = ({
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Graph);
   const [isEnlargeModalOpen, setIsEnlargeModalOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [currentTimeRange, setCurrentTimeRange] = useState(timeRange);
+  const [currentTimeZone, setCurrentTimeZone] = useState(timeZone);
+
+  // Update current time range and timezone whenever props change
+  useEffect(() => {
+    setCurrentTimeRange(timeRange);
+    setCurrentTimeZone(timeZone);
+  }, [timeRange, timeZone]);
 
   if (data.series.length === 0) {
     return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsStringField />;
@@ -100,8 +108,21 @@ export const SimplePanel: React.FC<Props> = ({
     const dashboardMatch2 = currentPath.match(/\/d\/([^/?]+)/);
     const dashboardUID = dashboardMatch2 ? dashboardMatch2[1] : '';
 
+    // Get current time range parameters from the URL to preserve the same format
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentFrom = urlParams.get('from');
+    const currentTo = urlParams.get('to');
+    
+    // Use current URL parameters if available, otherwise use the timeRange object
+    const from = currentFrom || (typeof currentTimeRange.from === 'object' 
+      ? currentTimeRange.from.valueOf() 
+      : currentTimeRange.from);
+    const to = currentTo || (typeof currentTimeRange.to === 'object' 
+      ? currentTimeRange.to.valueOf() 
+      : currentTimeRange.to);
+
     // Build the full dashboard URL with current time range and panel ID
-    const dashboardUrl = `${basePath}/d/${dashboardUID}?orgId=1&from=${encodeURIComponent(timeRange.from.toString())}&to=${encodeURIComponent(timeRange.to.toString())}&timezone=${encodeURIComponent(timeZone)}&viewPanel=${id}`;
+    const dashboardUrl = `${basePath}/d/${dashboardUID}?orgId=1&from=${encodeURIComponent(from.toString())}&to=${encodeURIComponent(to.toString())}&timezone=${encodeURIComponent(currentTimeZone)}&viewPanel=${id}`;
     
     window.open(dashboardUrl, '_blank');
   };
