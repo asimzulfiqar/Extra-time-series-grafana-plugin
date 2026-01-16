@@ -86,7 +86,7 @@ A custom Grafana panel plugin that extends the native Time Series panel with add
 ### Build (Production)
 
 ```bash
-cd /mnt/f/LRZ/Grafana/custom-panel/org1-bmcustom-panel
+cd ../extratimeseries-panel
 npm run build
 ```
 
@@ -106,7 +106,7 @@ If you encounter build issues on Windows, use WSL:
 
 ```bash
 wsl
-cd /mnt/f/LRZ/Grafana/custom-panel/org1-bmcustom-panel
+cd ../extratimeseries-panel
 npm install
 npm run build
 ```
@@ -171,32 +171,6 @@ Option B — Docker:
   - Enlarge → Open modal view
   - Table View → Toggle table/graph
 - To change series colors, use Overrides in the panel editor: Overrides → Add override → Fields with name → Color
-
-## Changing the Plugin Name/ID
-
-- Display name: edit `src/plugin.json` → `name`
-- Plugin ID: edit `src/plugin.json` → `id` (lowercase, unique). If you change the id, update `grafana.ini` and be aware existing dashboards referencing the old id won’t load this panel until updated.
-
-## Push to GitHub
-
-Initialize and push this project to your GitHub repository:
-
-```bash
-# From /mnt/f/LRZ/Grafana/custom-panel/org1-bmcustom-panel
-git init
-git add .
-git commit -m "feat: initial Extra Time series panel"
-# Replace with your repo URL
-git remote add origin https://github.com/<your-username>/asimzulfiqar-extratimeseries-panel.git
-git branch -M main
-git push -u origin main
-```
-
-## Signing (optional, later)
-
-This plugin is currently unsigned for internal use. When you’re ready to distribute broadly, follow Grafana’s signing guide and switch to a signed release.
-
-- Docs: https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin
 
 ## License
 
