@@ -6,14 +6,12 @@ import html2canvas from 'html2canvas';
  */
 export const exportToCSV = (series: DataFrame[], filename: string) => {
   if (!series || series.length === 0) {
-    console.warn('No data to export');
     return;
   }
 
   // Find time field and value fields across all series
   const timeField = series[0].fields.find((f) => f.type === 'time');
   if (!timeField) {
-    console.warn('No time field found');
     return;
   }
 
@@ -55,7 +53,7 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
   // Open CSV in new tab
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
+  window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 /**
@@ -63,14 +61,12 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
  */
 export const exportToHTML = (series: DataFrame[], filename: string) => {
   if (!series || series.length === 0) {
-    console.warn('No data to export');
     return;
   }
 
   // Find time field
   const timeField = series[0].fields.find((f) => f.type === 'time');
   if (!timeField) {
-    console.warn('No time field found');
     return;
   }
 
@@ -184,7 +180,7 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
   // Open HTML in new tab
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
+  window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 /**
@@ -202,11 +198,10 @@ export const exportToImage = async (element: HTMLElement, filename: string) => {
     canvas.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
       }
     });
   } catch (error) {
-    console.error('Failed to export image:', error);
     throw error;
   }
 };

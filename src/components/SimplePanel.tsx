@@ -3,7 +3,7 @@ import { PanelProps } from '@grafana/data';
 import { SimpleOptions, ViewMode, ExportFormat } from 'types';
 import { css, cx } from '@emotion/css';
 import { useStyles2, useTheme2, Button, Modal, TimeSeries } from '@grafana/ui';
-import { PanelDataErrorView } from '@grafana/runtime';
+import { PanelDataErrorView, locationService } from '@grafana/runtime';
 import { TableView } from './TableView';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
 
@@ -167,8 +167,6 @@ export const SimplePanel: React.FC<Props> = ({
         const startTime = pixelToTimestamp(Math.min(selectionStart, selectionEnd), graphWidth);
         const endTime = pixelToTimestamp(Math.max(selectionStart, selectionEnd), graphWidth);
         
-        console.log('Zooming directly to:', new Date(startTime), new Date(endTime), 'pixels:', dragDistance);
-        
         // Zoom directly on mouse release
         onChangeTimeRange({
           from: startTime,
@@ -180,7 +178,6 @@ export const SimplePanel: React.FC<Props> = ({
         setSelectionEnd(null);
       } else {
         // Clear if selection was too small
-        console.log('Selection too small, clearing');
         setSelectionStart(null);
         setSelectionEnd(null);
       }
@@ -196,32 +193,22 @@ export const SimplePanel: React.FC<Props> = ({
   // Keyboard shortcuts for zoom
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      console.log('Key pressed:', e.key, 'Ctrl:', e.ctrlKey, 'Meta:', e.metaKey);
-      
       // Check if panel or graph is focused
       const isPanelFocused = panelRef.current?.contains(document.activeElement);
       const isGraphFocused = graphRef.current?.contains(document.activeElement);
-      const activeElement = document.activeElement;
-      
-      console.log('Focus check - Panel:', isPanelFocused, 'Graph:', isGraphFocused, 'Active element:', activeElement?.tagName, activeElement?.className);
       
       if (!isPanelFocused && !isGraphFocused) {
-        console.log('Not focused, ignoring key press');
         return;
       }
 
       // Don't interfere with browser shortcuts
       if (e.ctrlKey || e.metaKey || e.altKey) {
-        console.log('Modifier key pressed, ignoring');
         return;
       }
-
-      console.log('Processing key:', e.key);
 
       switch (e.key.toLowerCase()) {
         case 'r':
           e.preventDefault();
-          console.log('R key handler triggered');
           // Reset to original time range
           if (onChangeTimeRange) {
             const from = typeof originalTimeRange.raw.from === 'object' 
@@ -291,13 +278,14 @@ export const SimplePanel: React.FC<Props> = ({
           break;
       }
     } catch (error) {
-      console.error('Export failed:', error);
+      // Export failed
     }
   };
 
   const handleEnlarge = () => {
     // Get the base path from the current URL by finding everything before /d/
-    const currentPath = window.location.pathname;
+    const location = locationService.getLocation();
+    const currentPath = location.pathname;
     const dashboardMatch = currentPath.match(/^(.*?)\/d\//);
     const basePath = dashboardMatch ? dashboardMatch[1] : '';
 
@@ -306,7 +294,7 @@ export const SimplePanel: React.FC<Props> = ({
     const dashboardUID = dashboardMatch2 ? dashboardMatch2[1] : '';
 
     // Get current time range parameters from the URL to preserve the same format
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(location.search);
     const currentFrom = urlParams.get('from');
     const currentTo = urlParams.get('to');
     
@@ -321,7 +309,7 @@ export const SimplePanel: React.FC<Props> = ({
     // Build the full dashboard URL with current time range and panel ID
     const dashboardUrl = `${basePath}/d/${dashboardUID}?orgId=1&from=${encodeURIComponent(from.toString())}&to=${encodeURIComponent(to.toString())}&timezone=${encodeURIComponent(currentTimeZone)}&viewPanel=${id}`;
     
-    window.open(dashboardUrl, '_blank');
+    window.open(dashboardUrl, '_blank', 'noopener,noreferrer');
   };
 
   const toggleViewMode = () => {
