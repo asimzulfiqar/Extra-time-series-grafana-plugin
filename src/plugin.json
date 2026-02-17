@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
   "type": "panel",
   "name": "Extra Time series",
-  "id": "asimzulfiqar-extratimeseries-panel",
+  "id": "emmiasim67-extratimeseries-panel",
   "info": {
     "keywords": ["panel", "timeseries", "export", "csv", "zoom", "table"],
     "description": "Extended Time Series panel with CSV/HTML/PNG export, interactive zoom, table view, and enlarge features",
