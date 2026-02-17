@@ -1,177 +1,229 @@
 # Extra Time Series Panel for Grafana
 
-A custom Grafana panel plugin that extends the native Time Series panel with additional export and viewing features.
+A Grafana panel plugin that extends the native Time Series panel with export capabilities, enhanced viewing options, and interactive zoom features.
 
 ## Features
 
-### ✅ Export Capabilities
-- **CSV Export** - Export time series data to CSV format (opens in new tab)
-- **HTML Export** - Export data as formatted HTML table (opens in new tab)
-- **Image Export** - Capture panel as PNG image using html2canvas (opens in new tab)
-
-### ✅ Enhanced Viewing
-- **Enlarge View** - Open panel in new browser tab with full dashboard context
-  - Preserves current time range
-  - Works with nginx reverse proxy (dynamic base path detection)
-  - Maintains timezone settings
-- **Table View** - Toggle between graph and table visualization
-  - Shows all series in columns
-  - Includes timestamps
-
-### ✅ Native Time Series Features
-- **Color-coded series** - Each series gets distinct colors from palette
-- **Legend** - Always visible with configurable display mode and placement
-- **Time range sync** - Updates from dashboard time picker
-- **Tooltips** - Configurable hover mode (single/multi)
-- **All standard time series options** - Line style, fill opacity, point visibility, etc.
-
-### ✅ Drag-to-Zoom with Keyboard Shortcuts
-- **Drag on graph** - Instantly zoom into the selected time range (minimum 20px drag)
-- **R key** - Reset zoom to original time range  
-- **+ or = key** - Zoom in by 50% (centered)
-- **- or _ key** - Zoom out by 50% (centered)
-- **Double-click** - Zoom in by 50% at center
-- **Shift + Double-click** - Zoom out by 50%
-- **Zoom Help button** - Shows all available shortcuts
-
-> **How it works**: Simply click and drag horizontally across the graph. When you release the mouse, it automatically zooms into that time range. No need to press any keys!
-
-## Configuration
-
-### Panel Options
-- **Show Export Button** - Enable/disable export menu
-- **Show Enlarge Button** - Enable/disable enlarge functionality  
-- **Show Table View Button** - Enable/disable table view toggle
-
-### Legend Options
-- **Display Mode** - List, table, or hidden
-- **Placement** - Bottom, right, or top
-
-### Tooltip Options
-- **Mode** - Single series, all series, or none
-
-## Known Limitations
-
-**Advanced drag-to-zoom functionality is not available** in this plugin because:
-
-- `XAxisInteractionAreaPlugin` (drag-to-pan on x-axis) is not exported from the published `@grafana/ui` package
-- It's only available in Grafana's internal source code
-- The GitHub issue #71976 was about a bug **within Grafana core**, not external plugins
-- External plugins cannot access internal Grafana components
-
-**Workarounds Available**:
-- Use the **keyboard shortcuts** listed above (R, +, -, double-click)
-- Use Grafana's time range picker in the dashboard header
+- **Export Options**: Export your time series data as CSV, HTML table, or PNG image
+- **Enlarge View**: Open panel in full browser tab with preserved time range and settings
+- **Table View**: Toggle between graph and tabular data visualization
+- **Interactive Zoom**: Drag-to-zoom on graph with keyboard shortcuts (R to reset, +/- to zoom)
+- **Full Time Series Support**: All native Grafana time series features including legends, tooltips, and styling options
 
 ## Installation
 
-1. Copy the plugin to your Grafana plugins directory:
+### Option 1: Download and Install
+
+1. **Download** the plugin:
+   - Download the latest release from the [releases page](https://github.com/yourusername/extra-time-series-grafana-plugin/releases)
+   - Or clone this repository: `git clone https://github.com/yourusername/extra-time-series-grafana-plugin.git`
+
+2. **Build** the plugin (if you cloned the repository):
    ```bash
-   cp -r dist/ /var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
+   cd extra-time-series-grafana-plugin
+   npm install
+   npm run build
    ```
 
-2. Restart Grafana:
+3. **Copy** the `dist/` folder to your Grafana plugins directory:
+   
+   **Linux:**
    ```bash
-   systemctl restart grafana-server
+   sudo cp -r dist/ /var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
+   ```
+   
+   **Windows:**
+   ```powershell
+   Copy-Item -Path dist -Destination "C:\Program Files\GrafanaLabs\grafana\data\plugins\asimzulfiqar-extratimeseries-panel" -Recurse
+   ```
+   
+   **macOS:**
+   ```bash
+   sudo cp -r dist/ /usr/local/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
    ```
 
-3. Enable the plugin in Grafana configuration if needed (for unsigned plugins):
+4. **Configure** Grafana to allow unsigned plugins:
+   
+   Edit your `grafana.ini` file and add:
    ```ini
    [plugins]
    allow_loading_unsigned_plugins = asimzulfiqar-extratimeseries-panel
    ```
+   
+   **Location of grafana.ini:**
+   - Linux: `/etc/grafana/grafana.ini`
+   - Windows: `C:\Program Files\GrafanaLabs\grafana\conf\grafana.ini`
+   - macOS: `/usr/local/etc/grafana/grafana.ini`
+   - Docker: Use environment variable `-e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel`
+
+5. **Restart** Grafana:
+   
+   **Linux:**
+   ```bash
+   sudo systemctl restart grafana-server
+   ```
+   
+   **Windows:**
+   ```powershell
+   Restart-Service Grafana
+   ```
+   
+   **macOS:**
+   ```bash
+   brew services restart grafana
+   ```
+   
+   **Docker:**
+   ```bash
+   docker restart grafana
+   ```
+
+6. **Verify** installation:
+   - Open Grafana in your browser
+   - Navigate to **Administration → Plugins**
+   - Search for "Extra Time Series"
+   - The plugin should appear in the list
+
+### Option 2: Docker Installation
+
+If you're running Grafana in Docker:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel \
+  -v /path/to/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel \
+  --name=grafana \
+  grafana/grafana
+```
+
+**Windows PowerShell:**
+```powershell
+docker run -d `
+  -p 3000:3000 `
+  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel `
+  -v ${PWD}/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel `
+  --name=grafana `
+  grafana/grafana
+```
+
+## Using the Plugin
+
+1. **Add a Panel**:
+   - Create or edit a dashboard
+   - Click "Add" → "Visualization"
+   - Select a data source with time series data
+   - Choose **"Extra Time series"** from the visualization list
+
+2. **Configure the Panel**:
+   - Add your queries to fetch time series data
+   - Use the panel options (right sidebar) to enable/disable features
+   - Customize the appearance using standard time series options
+
+3. **Use the Features**:
+   - **Export**: Click the export button in panel header → Choose CSV, HTML, or PNG
+   - **Zoom**: Drag horizontally on the graph to zoom into a time range
+   - **Keyboard Shortcuts**:
+     - `R` - Reset zoom to original time range
+     - `+` or `=` - Zoom in by 50%
+     - `-` or `_` - Zoom out by 50%
+     - Double-click - Zoom in at cursor position
+     - Shift + Double-click - Zoom out
+   - **Table View**: Click the table icon to toggle between graph and table
+   - **Enlarge**: Click the enlarge icon to open panel in full browser tab
+
+## Configuration
+
+### Panel Options
+- **Show Export Button** - Enable/disable export menu (CSV, HTML, PNG)
+- **Show Enlarge Button** - Enable/disable enlarged view in new tab
+- **Show Table View Button** - Enable/disable table visualization toggle
+
+### Display Options
+- **Legend**: Configure display mode (list, table, hidden) and placement
+- **Tooltips**: Choose hover mode (single series, all series, none)
+- **Standard Time Series Options**: Line style, fill opacity, point visibility, axis settings, thresholds, etc.
 
 ## Development
 
-### Build (Production)
+### Prerequisites
+- Node.js >= 22
+- npm >= 10
+
+### Setup
 
 ```bash
-cd ../extratimeseries-panel
-npm run build
-```
+# Clone the repository
+git clone https://github.com/yourusername/extra-time-series-grafana-plugin.git
+cd extra-time-series-grafana-plugin
 
-The distributable plugin will be in `dist/`.
+# Install dependencies
+npm install
 
-### Development Mode
-
-```bash
+# Start development mode (watches for changes)
 npm run dev
 ```
 
-Webpack will watch for changes. Refresh your Grafana browser tab to see updates.
-
-### Using WSL for Build (Windows)
-
-If you encounter build issues on Windows, use WSL:
+### Build for Production
 
 ```bash
-wsl
-cd ../extratimeseries-panel
+npm run build
+```
+
+This creates a production-ready plugin in the `dist/` directory.
+
+### Run Tests
+
+```bash
+# Run unit tests
+npm run test:ci
+
+# Run end-to-end tests
+npm run e2e
+```
+
+### Project Structure
+
+```
+Extra-time-series-grafana-plugin/
+├── src/
+│   ├── components/
+│   │   ├── SimplePanel.tsx       # Main panel component
+│   │   └── TableView.tsx         # Table view component
+│   ├── utils/
+│   │   └── exportUtils.ts        # Export functionality
+│   ├── module.ts                 # Plugin entry point
+│   ├── plugin.json               # Plugin metadata
+│   └── types.ts                  # TypeScript types
+├── dist/                         # Built plugin (after npm run build)
+├── package.json
+└── README.md
+```
+
+## Troubleshooting
+
+### Plugin Not Appearing in Grafana
+
+1. **Check plugins directory**: Make sure the plugin folder is named exactly `asimzulfiqar-extratimeseries-panel`
+2. **Check unsigned plugin config**: Verify `allow_loading_unsigned_plugins` is set in grafana.ini
+3. **Check Grafana logs**:
+   - Linux: `sudo tail -f /var/log/grafana/grafana.log`
+   - Windows: Check Windows Event Viewer or `C:\Program Files\GrafanaLabs\grafana\data\log\grafana.log`
+4. **Restart Grafana**: Make sure you restarted Grafana after copying the plugin
+
+### Build Errors
+
+```bash
+# Clean and rebuild
+rm -rf dist/ node_modules/
 npm install
 npm run build
 ```
 
-## Technical Details
+### Development Mode Not Working
 
-- **Plugin ID**: `asimzulfiqar-extratimeseries-panel`
-- **Author**: Asim Zulfiqar
-- **License**: Apache-2.0
-- **Grafana Version**: 12.3.0+
-
-### Color Palette
-
-The plugin uses a fixed color palette to ensure consistent series colors:
-```javascript
-['#7EB26D', '#EAB839', '#6ED0E0', '#EF843C', '#E24D42', 
- '#1F78C1', '#BA43A9', '#705DA0', '#508642', '#CCA300']
-```
-
-## Support
-
-For issues or questions, refer to the Grafana plugin development documentation.
-- `dist/plugin.json`
-- Assets under `dist/`
-
-## Install in Grafana (unsigned)
-
-Option A — Local filesystem install:
-- Copy the `dist/` folder to Grafana’s plugins directory as a folder named after the plugin id:
-  - Linux: `/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel`
-  - Windows: `C:\\Program Files\\GrafanaLabs\\grafana\\data\\plugins\\asimzulfiqar-extratimeseries-panel`
-
-- In `grafana.ini`, allow unsigned plugin:
-  ```ini
-  [plugins]
-  allow_loading_unsigned_plugins = asimzulfiqar-extratimeseries-panel
-  ```
-
-- Restart Grafana and navigate to Administration → Plugins to verify it appears.
-
-Option B — Docker:
-- Mount the plugin folder into Grafana container:
-  ```bash
-  docker run -d -p 3000:3000 \
-    -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel \
-    -v $(pwd)/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel \
-    --name grafana grafana/grafana:latest
-  ```
-  PowerShell variant:
-  ```powershell
-  docker run -d -p 3000:3000 \
-    -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel \
-    -v ${PWD}/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel \
-    --name grafana grafana/grafana:latest
-  ```
-
-## Using the Panel
-
-- Add a new panel, select "Extra Time series" from the visualization list
-- Use the action bar to:
-  - Export → CSV / HTML / Image
-  - Enlarge → Open modal view
-  - Table View → Toggle table/graph
-- To change series colors, use Overrides in the panel editor: Overrides → Add override → Fields with name → Color
+Make sure Grafana is running and refresh your browser after making changes. The plugin uses webpack in watch mode, so changes should be picked up automatically.
 
 ## License
 
-Apache-2.0
+Apache-2.0 License - see [LICENSE](LICENSE)
