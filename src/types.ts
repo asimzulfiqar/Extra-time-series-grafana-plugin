@@ -1,26 +1,9 @@
-import { GraphDrawStyle, LegendDisplayMode, TooltipDisplayMode } from '@grafana/schema';
+import { OptionsWithLegend, OptionsWithTooltip } from '@grafana/schema';
 
-type SeriesSize = 'sm' | 'md' | 'lg';
-
-export interface SimpleOptions {
-  text: string;
-  showSeriesCount: boolean;
-  seriesCountSize: SeriesSize;
+export interface SimpleOptions extends OptionsWithLegend, OptionsWithTooltip {
   showExportButton: boolean;
   showEnlargeButton: boolean;
   showTableViewButton: boolean;
-  // TimeSeries options
-  legend?: {
-    displayMode: LegendDisplayMode;
-    placement: string;
-    showLegend: boolean;
-    calcs: string[];
-  };
-  tooltip?: {
-    mode: TooltipDisplayMode;
-    sort: string;
-  };
-  drawStyle?: GraphDrawStyle;
 }
 
 export enum ViewMode {

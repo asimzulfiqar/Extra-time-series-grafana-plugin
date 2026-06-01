@@ -35,9 +35,19 @@
       },
       "id": 1,
       "options": {
-        "seriesCountSize": "sm",
-        "showSeriesCount": false,
-        "text": "Default value of text input option"
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "showEnlargeButton": true,
+        "showExportButton": true,
+        "showTableViewButton": true,
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
@@ -51,7 +61,7 @@
         }
       ],
       "title": "Sample Panel Title",
-      "type": "asimzulfiqar-extratimeseries-panel"
+      "type": "emmiasim67-extratimeseries-panel"
     },
     {
       "datasource": {
@@ -66,9 +76,19 @@
       },
       "id": 2,
       "options": {
-        "seriesCountSize": "sm",
-        "showSeriesCount": false,
-        "text": "Default value of text input option"
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "showEnlargeButton": true,
+        "showExportButton": true,
+        "showTableViewButton": true,
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
@@ -82,7 +102,7 @@
         }
       ],
       "title": "Sample Panel Title",
-      "type": "asimzulfiqar-extratimeseries-panel"
+      "type": "emmiasim67-extratimeseries-panel"
     }
   ],
   "refresh": "",

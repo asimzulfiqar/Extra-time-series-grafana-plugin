@@ -4,6 +4,7 @@ import { SimpleOptions, ViewMode, ExportFormat } from 'types';
 import { css, cx } from '@emotion/css';
 import { useStyles2, useTheme2, Button, Modal, TimeSeries, TooltipPlugin } from '@grafana/ui';
 import { PanelDataErrorView, locationService } from '@grafana/runtime';
+import { LegendDisplayMode, SortOrder, TooltipDisplayMode } from '@grafana/schema';
 import { TableView } from './TableView';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
 
@@ -348,21 +349,25 @@ export const SimplePanel: React.FC<Props> = ({
           timeZone={timeZone}
           frames={data.series}
           legend={{
-            displayMode: (options.legend?.displayMode || 'list') as any,
-            placement: (options.legend?.placement || 'bottom') as any,
-            showLegend: true,
-            calcs: [],
+            displayMode: options.legend?.displayMode || LegendDisplayMode.List,
+            placement: options.legend?.placement || 'bottom',
+            showLegend: options.legend?.showLegend ?? true,
+            calcs: options.legend?.calcs || [],
+            width: options.legend?.width,
           }}
         >
           {(config, alignedDataFrame) => {
             return (
-              <TooltipPlugin
-                config={config}
-                data={alignedDataFrame}
-                frames={data.series}
-                mode={options.tooltip?.mode}
-                timeZone={timeZone}
-              />
+              options.tooltip?.mode !== TooltipDisplayMode.None && (
+                <TooltipPlugin
+                  config={config}
+                  data={alignedDataFrame}
+                  frames={data.series}
+                  mode={options.tooltip?.mode}
+                  sortOrder={options.tooltip?.sort || SortOrder.None}
+                  timeZone={timeZone}
+                />
+              )
             );
           }}
         </TimeSeries>

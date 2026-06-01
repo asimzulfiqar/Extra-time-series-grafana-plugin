@@ -9,27 +9,14 @@ test('should display "No data" in case panel data is empty', async ({
   await expect(panelEditPage.panel.locator).toContainText('No data');
 });
 
-test('should display circle when data is passed to the panel', async ({
-  panelEditPage,
-  readProvisionedDataSource,
-  page,
-}) => {
-  const ds = await readProvisionedDataSource({ fileName: 'datasources.yml' });
-  await panelEditPage.datasource.set(ds.name);
-  await panelEditPage.setVisualization('Extra Time series');
-  await expect(page.getByTestId('simple-panel-circle')).toBeVisible();
-});
-
-test('should display series counter when "Show series counter" option is enabled', async ({
+test('should display the custom time series toolbar', async ({
   gotoPanelEditPage,
   readProvisionedDashboard,
-  page,
 }) => {
   const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
   const panelEditPage = await gotoPanelEditPage({ dashboard, id: '1' });
-  const options = panelEditPage.getCustomOptions('BM-Custom');
-  const showSeriesCounter = options.getSwitch('Show series counter');
 
-  await showSeriesCounter.check();
-  await expect(page.getByTestId('simple-panel-series-counter')).toBeVisible();
+  await expect(panelEditPage.panel.locator.getByRole('button', { name: 'Table View' })).toBeVisible();
+  await expect(panelEditPage.panel.locator.getByRole('button', { name: 'Enlarge' })).toBeVisible();
+  await expect(panelEditPage.panel.locator.getByRole('button', { name: 'Export' })).toBeVisible();
 });

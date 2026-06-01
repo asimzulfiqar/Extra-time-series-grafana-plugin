@@ -1,119 +1,224 @@
-import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions } from './types';
+import { FieldColorModeId, FieldConfigProperty, PanelPlugin } from '@grafana/data';
+import {
+  AxisPlacement,
+  BarAlignment,
+  GraphDrawStyle,
+  GraphFieldConfig,
+  GraphGradientMode,
+  GraphThresholdsStyleMode,
+  GraphTransform,
+  LineInterpolation,
+  StackingMode,
+  VisibilityMode,
+} from '@grafana/schema';
+import { commonOptionsBuilder, getGraphFieldOptions } from '@grafana/ui';
 import { SimplePanel } from './components/SimplePanel';
+import { SimpleOptions } from './types';
 
-export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel)
+const defaultGraphConfig: GraphFieldConfig = {
+  drawStyle: GraphDrawStyle.Line,
+  lineInterpolation: LineInterpolation.Linear,
+  lineWidth: 1,
+  fillOpacity: 0,
+  gradientMode: GraphGradientMode.None,
+  barAlignment: BarAlignment.Center,
+  barWidthFactor: 0.6,
+  stacking: {
+    mode: StackingMode.None,
+    group: 'A',
+  },
+  axisPlacement: AxisPlacement.Auto,
+  axisGridShow: true,
+  axisCenteredZero: false,
+  axisBorderShow: false,
+  showPoints: VisibilityMode.Auto,
+  pointSize: 5,
+  thresholdsStyle: {
+    mode: GraphThresholdsStyleMode.Off,
+  },
+};
+
+export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePanel)
   .useFieldConfig({
-    useCustomConfig: (builder) => {
-      builder.addSliderInput({
-        path: 'lineWidth',
-        name: 'Line width',
-        defaultValue: 1,
+    standardOptions: {
+      [FieldConfigProperty.Color]: {
         settings: {
-          min: 0,
-          max: 10,
-          step: 1,
+          byValueSupport: true,
+          bySeriesSupport: true,
+          preferThresholdsMode: false,
         },
-      })
-      .addSliderInput({
-        path: 'fillOpacity',
-        name: 'Fill opacity',
-        defaultValue: 0,
+        defaultValue: {
+          mode: FieldColorModeId.PaletteClassic,
+        },
+      },
+    },
+    useCustomConfig: (builder) => {
+      const graphFieldOptions = getGraphFieldOptions();
+      const graphStyles = ['Graph styles'];
+
+      builder
+        .addRadio({
+          path: 'drawStyle',
+          name: 'Style',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.drawStyle,
+          settings: {
+            options: graphFieldOptions.drawStyle,
+          },
+        })
+        .addRadio({
+          path: 'lineInterpolation',
+          name: 'Line interpolation',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.lineInterpolation,
+          settings: {
+            options: graphFieldOptions.lineInterpolation,
+          },
+          showIf: (config) => config.drawStyle === GraphDrawStyle.Line,
+        })
+        .addRadio({
+          path: 'barAlignment',
+          name: 'Bar alignment',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.barAlignment,
+          settings: {
+            options: graphFieldOptions.barAlignment,
+          },
+          showIf: (config) => config.drawStyle === GraphDrawStyle.Bars,
+        })
+        .addSliderInput({
+          path: 'barWidthFactor',
+          name: 'Bar width factor',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.barWidthFactor,
+          settings: {
+            min: 0.1,
+            max: 1,
+            step: 0.1,
+          },
+          showIf: (config) => config.drawStyle === GraphDrawStyle.Bars,
+        })
+        .addSliderInput({
+          path: 'lineWidth',
+          name: 'Line width',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.lineWidth,
+          settings: {
+            min: 0,
+            max: 10,
+            step: 1,
+          },
+          showIf: (config) => config.drawStyle !== GraphDrawStyle.Points,
+        })
+        .addSliderInput({
+          path: 'fillOpacity',
+          name: 'Fill opacity',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.fillOpacity,
+          settings: {
+            min: 0,
+            max: 100,
+            step: 1,
+          },
+          showIf: (config) => config.drawStyle !== GraphDrawStyle.Points,
+        })
+        .addRadio({
+          path: 'gradientMode',
+          name: 'Gradient mode',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.gradientMode,
+          settings: {
+            options: graphFieldOptions.fillGradient,
+          },
+          showIf: (config) => config.drawStyle !== GraphDrawStyle.Points,
+        })
+        .addFieldNamePicker({
+          path: 'fillBelowTo',
+          name: 'Fill below to',
+          category: graphStyles,
+          hideFromDefaults: true,
+        })
+        .addBooleanSwitch({
+          path: 'spanNulls',
+          name: 'Connect null values',
+          category: graphStyles,
+          defaultValue: false,
+          showIf: (config) => config.drawStyle === GraphDrawStyle.Line,
+        })
+        .addRadio({
+          path: 'showPoints',
+          name: 'Show points',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.showPoints,
+          settings: {
+            options: graphFieldOptions.showPoints,
+          },
+          showIf: (config) => config.drawStyle !== GraphDrawStyle.Points,
+        })
+        .addSliderInput({
+          path: 'pointSize',
+          name: 'Point size',
+          category: graphStyles,
+          defaultValue: defaultGraphConfig.pointSize,
+          settings: {
+            min: 1,
+            max: 40,
+            step: 1,
+          },
+          showIf: (config) => config.showPoints !== VisibilityMode.Never || config.drawStyle === GraphDrawStyle.Points,
+        })
+        .addSelect({
+          path: 'transform',
+          name: 'Transform',
+          category: graphStyles,
+          hideFromDefaults: true,
+          settings: {
+            options: [
+              { label: 'Constant', value: GraphTransform.Constant },
+              { label: 'Negative Y', value: GraphTransform.NegativeY },
+            ],
+            isClearable: true,
+          },
+        });
+
+      commonOptionsBuilder.addStackingConfig(builder, defaultGraphConfig.stacking, graphStyles);
+      commonOptionsBuilder.addAxisConfig(builder, defaultGraphConfig);
+      commonOptionsBuilder.addHideFrom(builder);
+
+      builder.addRadio({
+        path: 'thresholdsStyle.mode',
+        name: 'Show thresholds',
+        category: ['Thresholds'],
+        defaultValue: GraphThresholdsStyleMode.Off,
         settings: {
-          min: 0,
-          max: 100,
-          step: 1,
+          options: graphFieldOptions.thresholdsDisplayModes,
         },
       });
     },
   })
   .setPanelOptions((builder) => {
-  return builder
-    .addTextInput({
-      path: 'text',
-      name: 'Simple text option',
-      description: 'Description of panel option',
-      defaultValue: 'Default value of text input option',
-    })
-    .addBooleanSwitch({
-      path: 'showSeriesCount',
-      name: 'Show series counter',
-      defaultValue: false,
-    })
-    .addRadio({
-      path: 'seriesCountSize',
-      defaultValue: 'sm',
-      name: 'Series counter size',
-      settings: {
-        options: [
-          {
-            value: 'sm',
-            label: 'Small',
-          },
-          {
-            value: 'md',
-            label: 'Medium',
-          },
-          {
-            value: 'lg',
-            label: 'Large',
-          },
-        ],
-      },
-      showIf: (config) => config.showSeriesCount,
-    })
-    .addBooleanSwitch({
-      path: 'showExportButton',
-      name: 'Show Export Button',
-      description: 'Display export button with CSV, HTML, and image options',
-      defaultValue: true,
-    })
-    .addBooleanSwitch({
-      path: 'showEnlargeButton',
-      name: 'Show Enlarge Button',
-      description: 'Display enlarge button to view panel in full screen',
-      defaultValue: true,
-    })
-    .addBooleanSwitch({
-      path: 'showTableViewButton',
-      name: 'Show Table View Button',
-      description: 'Display table view toggle button',
-      defaultValue: true,
-    })
-    .addRadio({
-      path: 'tooltip.mode',
-      name: 'Tooltip mode',
-      defaultValue: 'single',
-      settings: {
-        options: [
-          { value: 'single', label: 'Single' },
-          { value: 'multi', label: 'All' },
-          { value: 'none', label: 'Hidden' },
-        ],
-      },
-    })
-    .addRadio({
-      path: 'legend.displayMode',
-      name: 'Legend mode',
-      defaultValue: 'list',
-      settings: {
-        options: [
-          { value: 'list', label: 'List' },
-          { value: 'table', label: 'Table' },
-          { value: 'hidden', label: 'Hidden' },
-        ],
-      },
-    })
-    .addRadio({
-      path: 'legend.placement',
-      name: 'Legend placement',
-      defaultValue: 'bottom',
-      settings: {
-        options: [
-          { value: 'bottom', label: 'Bottom' },
-          { value: 'right', label: 'Right' },
-          { value: 'top', label: 'Top' },
-        ],
-      },
-    });
-});
+    builder
+      .addBooleanSwitch({
+        path: 'showExportButton',
+        name: 'Show Export Button',
+        description: 'Display export button with CSV, HTML, and image options',
+        defaultValue: true,
+      })
+      .addBooleanSwitch({
+        path: 'showEnlargeButton',
+        name: 'Show Enlarge Button',
+        description: 'Display enlarge button to view panel in full screen',
+        defaultValue: true,
+      })
+      .addBooleanSwitch({
+        path: 'showTableViewButton',
+        name: 'Show Table View Button',
+        description: 'Display table view toggle button',
+        defaultValue: true,
+      });
+
+    commonOptionsBuilder.addTooltipOptions(builder);
+    commonOptionsBuilder.addLegendOptions(builder);
+
+    return builder;
+  });
