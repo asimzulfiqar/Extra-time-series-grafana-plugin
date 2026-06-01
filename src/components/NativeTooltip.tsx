@@ -1,7 +1,7 @@
 import React from 'react';
 import { DataFrame, FieldType, formattedValueToString, getFieldDisplayName } from '@grafana/data';
 import { SortOrder, TooltipDisplayMode } from '@grafana/schema';
-import { SeriesTable } from '@grafana/ui';
+import { Button, SeriesTable } from '@grafana/ui';
 
 interface Props {
   frame: DataFrame;
@@ -9,9 +9,10 @@ interface Props {
   seriesIdx: number | null;
   mode: TooltipDisplayMode;
   sortOrder: SortOrder;
+  onAddAnnotation?: () => void;
 }
 
-export const NativeTooltip = ({ frame, dataIdxs, seriesIdx, mode, sortOrder }: Props) => {
+export const NativeTooltip = ({ frame, dataIdxs, seriesIdx, mode, sortOrder, onAddAnnotation }: Props) => {
   const timeField = frame.fields[0];
   const timeIndex = dataIdxs[0];
   const timestamp = timeIndex == null ? undefined : formattedValueToString(timeField.display!(timeField.values[timeIndex]));
@@ -40,5 +41,14 @@ export const NativeTooltip = ({ frame, dataIdxs, seriesIdx, mode, sortOrder }: P
     rows.sort((a, b) => direction * ((a.numeric ?? 0) - (b.numeric ?? 0)));
   }
 
-  return <SeriesTable timestamp={timestamp} series={rows} />;
+  return (
+    <>
+      <SeriesTable timestamp={timestamp} series={rows} />
+      {onAddAnnotation && (
+        <Button icon="comment-alt" variant="secondary" size="sm" onClick={onAddAnnotation}>
+          Add annotation
+        </Button>
+      )}
+    </>
+  );
 };

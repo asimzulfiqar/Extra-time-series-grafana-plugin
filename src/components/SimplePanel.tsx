@@ -134,7 +134,7 @@ export const SimplePanel: React.FC<Props> = ({
               clientZoom
               syncMode={cursorSync}
               syncScope={eventsScope}
-              render={(_plot, dataIdxs, seriesIdx, _isPinned, dismiss, selectedRange) => {
+              render={(plot, dataIdxs, seriesIdx, isPinned, dismiss, selectedRange) => {
                 if (canCreateAnnotations && selectedRange) {
                   setNewAnnotationRange(selectedRange);
                   dismiss();
@@ -148,6 +148,15 @@ export const SimplePanel: React.FC<Props> = ({
                     seriesIdx={seriesIdx}
                     mode={options.tooltip?.mode || TooltipDisplayMode.Single}
                     sortOrder={options.tooltip?.sort || SortOrder.None}
+                    onAddAnnotation={
+                      canCreateAnnotations && isPinned
+                        ? () => {
+                            const time = plot.posToVal(plot.cursor.left!, 'x');
+                            setNewAnnotationRange({ from: time, to: time });
+                            dismiss();
+                          }
+                        : undefined
+                    }
                   />
                 );
               }}
