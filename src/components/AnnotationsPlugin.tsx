@@ -1,8 +1,21 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { css } from '@emotion/css';
 import { AnnotationEventUIModel, DataFrame, dateTimeFormat } from '@grafana/data';
+import { getBackendSrv } from '@grafana/runtime';
 import { TimeZone } from '@grafana/schema';
-import { Button, Field, Input, Modal, Stack, TextArea, UPlotConfigBuilder, usePanelContext, useTheme2 } from '@grafana/ui';
+import {
+  Button,
+  ConfirmModal,
+  Field,
+  IconButton,
+  Input,
+  Modal,
+  Stack,
+  TextArea,
+  UPlotConfigBuilder,
+  usePanelContext,
+  useTheme2,
+} from '@grafana/ui';
 import { createPortal } from 'react-dom';
 import { AnnotationDisplayMode } from 'types';
 import uPlot from 'uplot';
@@ -21,6 +34,12 @@ interface Props {
   timeZone: TimeZone;
 }
 
+interface StoredAnnotation {
+  id: number;
+  text: string;
+  tags: string[];
+}
+
 const getValues = (frame: DataFrame) => {
   const values: Record<string, any[]> = {};
   frame.fields.forEach((field) => {
@@ -35,9 +54,17 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
   const plotRef = useRef<uPlot>();
   const annotationsRef = useRef(annotations);
   const displayModeRef = useRef(displayMode);
+  const hiddenAnnotationIdsRef = useRef(new Set<number>());
   const [plot, setPlot] = useState<uPlot>();
   const [, setRenderRevision] = useState(0);
   const [hoveredAnnotation, setHoveredAnnotation] = useState<string>();
+  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState(new Set<number>());
+  const [annotationOverrides, setAnnotationOverrides] = useState(new Map<number, StoredAnnotation>());
+  const [editingAnnotation, setEditingAnnotation] = useState<StoredAnnotation>();
+  const [deletingAnnotation, setDeletingAnnotation] = useState<StoredAnnotation>();
+  const [actionPending, setActionPending] = useState(false);
+  const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
 
@@ -49,6 +76,11 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
     displayModeRef.current = displayMode;
     plotRef.current?.redraw();
   }, [displayMode]);
+
+  useEffect(() => {
+    hiddenAnnotationIdsRef.current = hiddenAnnotationIds;
+    plotRef.current?.redraw();
+  }, [hiddenAnnotationIds]);
 
   useLayoutEffect(() => {
     config.addHook('init', (plot) => {
@@ -73,6 +105,10 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
 
         const values = getValues(frame);
         (values.time ?? []).forEach((time, index) => {
+          if (hiddenAnnotationIdsRef.current.has(values.id?.[index])) {
+            return;
+          }
+
           const start = plot.valToPos(time, 'x', true);
           const color = values.color?.[index] || '#ff780a';
           if (displayModeRef.current === AnnotationDisplayMode.Line) {
@@ -122,6 +158,56 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
     onDismiss();
   };
 
+  const startEdit = (annotation: StoredAnnotation) => {
+    setHoveredAnnotation(undefined);
+    setEditingAnnotation(annotation);
+    setEditDescription(annotation.text);
+    setEditTags(annotation.tags.join(', '));
+  };
+
+  const saveEdit = async () => {
+    if (!editingAnnotation || !editDescription.trim()) {
+      return;
+    }
+
+    const updatedAnnotation = {
+      ...editingAnnotation,
+      text: editDescription.trim(),
+      tags: editTags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    };
+
+    setActionPending(true);
+    try {
+      await getBackendSrv().patch(`/api/annotations/${editingAnnotation.id}`, {
+        text: updatedAnnotation.text,
+        tags: updatedAnnotation.tags,
+      });
+      setAnnotationOverrides((overrides) => new Map(overrides).set(updatedAnnotation.id, updatedAnnotation));
+      setEditingAnnotation(undefined);
+    } finally {
+      setActionPending(false);
+    }
+  };
+
+  const deleteAnnotation = async () => {
+    if (!deletingAnnotation) {
+      return;
+    }
+
+    setActionPending(true);
+    try {
+      await getBackendSrv().delete(`/api/annotations/${deletingAnnotation.id}`);
+      setHiddenAnnotationIds((ids) => new Set(ids).add(deletingAnnotation.id));
+      setHoveredAnnotation(undefined);
+      setDeletingAnnotation(undefined);
+    } finally {
+      setActionPending(false);
+    }
+  };
+
   const markers =
     plot &&
     annotations.flatMap((frame, frameIndex) => {
@@ -131,9 +217,22 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
 
       const values = getValues(frame);
       return (values.time ?? []).map((time, index) => {
+        const annotationId = values.id?.[index];
+        if (hiddenAnnotationIds.has(annotationId)) {
+          return null;
+        }
+
         const id = `${frameIndex}-${index}`;
-        const text = values.text?.[index] || values.description?.[index] || 'Annotation';
-        const tags = values.tags?.[index];
+        const storedAnnotation =
+          typeof annotationId === 'number' && !values.alertId?.[index]
+            ? annotationOverrides.get(annotationId) ?? {
+                id: annotationId,
+                text: values.text?.[index] || values.description?.[index] || 'Annotation',
+                tags: Array.isArray(values.tags?.[index]) ? values.tags[index] : [],
+              }
+            : undefined;
+        const text = storedAnnotation?.text ?? values.text?.[index] ?? values.description?.[index] ?? 'Annotation';
+        const tags = storedAnnotation?.tags ?? values.tags?.[index];
         const tagsText = Array.isArray(tags) ? tags.join(', ') : tags;
         const left = plot.valToPos(time, 'x');
         const color = values.color?.[index] || '#ff780a';
@@ -147,17 +246,17 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
               top: 0;
               bottom: 0;
               left: ${left}px;
-              width: ${displayMode === AnnotationDisplayMode.Line ? '10px' : 'auto'};
-              transform: translateX(-50%);
+              width: 0;
               z-index: 5;
-              pointer-events: auto;
+              pointer-events: none;
             `}
-            onMouseEnter={() => setHoveredAnnotation(id)}
-            onMouseLeave={() => setHoveredAnnotation(undefined)}
           >
             {displayMode === AnnotationDisplayMode.Text && (
               <div
                 className={css`
+                  position: absolute;
+                  top: 0;
+                  left: 0;
                   max-width: 180px;
                   overflow: hidden;
                   padding: 2px 5px;
@@ -170,17 +269,42 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
                   text-overflow: ellipsis;
                   white-space: nowrap;
                   box-shadow: ${theme.shadows.z1};
+                  transform: translateX(-50%);
+                  pointer-events: auto;
                 `}
               >
                 {text}
               </div>
             )}
-            {showDetails && (
+            <div
+              className={css`
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 16px;
+                height: 14px;
+                transform: translateX(-50%);
+                pointer-events: auto;
+              `}
+              onMouseEnter={() => setHoveredAnnotation(id)}
+              onMouseLeave={() => setHoveredAnnotation(undefined)}
+            >
+              <div
+                className={css`
+                  width: 0;
+                  height: 0;
+                  margin: 4px auto 0;
+                  border-right: 6px solid transparent;
+                  border-bottom: 8px solid ${color};
+                  border-left: 6px solid transparent;
+                `}
+              />
+              {showDetails && (
               <div
                 className={css`
                   position: absolute;
-                  top: ${displayMode === AnnotationDisplayMode.Text ? '24px' : '6px'};
-                  left: 6px;
+                  right: -8px;
+                  bottom: 14px;
                   width: max-content;
                   max-width: 260px;
                   padding: 6px 8px;
@@ -196,8 +320,29 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
                 <strong>{text}</strong>
                 <div>{dateTimeFormat(time, { timeZone })}</div>
                 {tagsText && <div>Tags: {tagsText}</div>}
+                {storedAnnotation && (
+                  <Stack justifyContent="flex-end" gap={0.5}>
+                    <IconButton
+                      name="pen"
+                      aria-label="Edit annotation"
+                      tooltip="Edit annotation"
+                      onClick={() => startEdit(storedAnnotation)}
+                    />
+                    <IconButton
+                      name="trash-alt"
+                      aria-label="Delete annotation"
+                      tooltip="Delete annotation"
+                      variant="destructive"
+                      onClick={() => {
+                        setHoveredAnnotation(undefined);
+                        setDeletingAnnotation(storedAnnotation);
+                      }}
+                    />
+                  </Stack>
+                )}
               </div>
             )}
+            </div>
           </div>
         );
       });
@@ -232,6 +377,35 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
             </Stack>
           </div>
         </Modal>
+      )}
+      {editingAnnotation && (
+        <Modal title="Edit annotation" isOpen onDismiss={() => setEditingAnnotation(undefined)}>
+          <Field label="Description">
+            <TextArea value={editDescription} onChange={(event) => setEditDescription(event.currentTarget.value)} autoFocus />
+          </Field>
+          <Field label="Tags" description="Comma-separated tags">
+            <Input value={editTags} onChange={(event) => setEditTags(event.currentTarget.value)} />
+          </Field>
+          <Stack justifyContent="flex-end">
+            <Button variant="secondary" onClick={() => setEditingAnnotation(undefined)} disabled={actionPending}>
+              Cancel
+            </Button>
+            <Button onClick={saveEdit} disabled={!editDescription.trim() || actionPending}>
+              Save
+            </Button>
+          </Stack>
+        </Modal>
+      )}
+      {deletingAnnotation && (
+        <ConfirmModal
+          isOpen
+          title="Delete annotation"
+          body={`Delete "${deletingAnnotation.text}"?`}
+          confirmText="Delete"
+          confirmButtonVariant="destructive"
+          onConfirm={deleteAnnotation}
+          onDismiss={() => setDeletingAnnotation(undefined)}
+        />
       )}
     </>
   );
