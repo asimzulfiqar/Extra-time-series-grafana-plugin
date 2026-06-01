@@ -4,6 +4,12 @@ export interface SimpleOptions extends OptionsWithLegend, OptionsWithTooltip {
   showExportButton: boolean;
   showEnlargeButton: boolean;
   showTableViewButton: boolean;
+  annotationDisplayMode?: AnnotationDisplayMode;
+}
+
+export enum AnnotationDisplayMode {
+  Line = 'line',
+  Text = 'text',
 }
 
 export enum ViewMode {

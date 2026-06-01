@@ -13,7 +13,7 @@ import {
   useStyles2,
   useTheme2,
 } from '@grafana/ui';
-import { ExportFormat, SimpleOptions, ViewMode } from 'types';
+import { AnnotationDisplayMode, ExportFormat, SimpleOptions, ViewMode } from 'types';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
 import { AnnotationRange, AnnotationsPlugin } from './AnnotationsPlugin';
 import { NativeTooltip } from './NativeTooltip';
@@ -165,6 +165,7 @@ export const SimplePanel: React.FC<Props> = ({
           )}
           <AnnotationsPlugin
             annotations={data.annotations ?? []}
+            displayMode={options.annotationDisplayMode ?? AnnotationDisplayMode.Line}
             config={config}
             newRange={newAnnotationRange}
             onDismiss={() => setNewAnnotationRange(null)}

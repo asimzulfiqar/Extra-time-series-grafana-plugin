@@ -13,7 +13,7 @@ import {
 } from '@grafana/schema';
 import { commonOptionsBuilder, getGraphFieldOptions } from '@grafana/ui';
 import { SimplePanel } from './components/SimplePanel';
-import { SimpleOptions } from './types';
+import { AnnotationDisplayMode, SimpleOptions } from './types';
 
 const defaultGraphConfig: GraphFieldConfig = {
   drawStyle: GraphDrawStyle.Line,
@@ -215,6 +215,18 @@ export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePan
         name: 'Show Table View Button',
         description: 'Display table view toggle button',
         defaultValue: true,
+      })
+      .addRadio({
+        path: 'annotationDisplayMode',
+        name: 'Annotation markers',
+        description: 'Line markers show annotation details on hover. Text markers keep annotation text visible on the chart.',
+        defaultValue: AnnotationDisplayMode.Line,
+        settings: {
+          options: [
+            { label: 'Line markers', value: AnnotationDisplayMode.Line },
+            { label: 'Text markers', value: AnnotationDisplayMode.Text },
+          ],
+        },
       });
 
     commonOptionsBuilder.addTooltipOptions(builder);
