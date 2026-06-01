@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { PanelProps } from '@grafana/data';
 import { SimpleOptions, ViewMode, ExportFormat } from 'types';
 import { css, cx } from '@emotion/css';
-import { useStyles2, useTheme2, Button, Modal, TimeSeries } from '@grafana/ui';
+import { useStyles2, useTheme2, Button, Modal, TimeSeries, TooltipPlugin } from '@grafana/ui';
 import { PanelDataErrorView, locationService } from '@grafana/runtime';
 import { TableView } from './TableView';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
@@ -355,8 +355,15 @@ export const SimplePanel: React.FC<Props> = ({
           }}
         >
           {(config, alignedDataFrame) => {
-            // You can add custom uPlot plugins here if needed in the future
-            return null;
+            return (
+              <TooltipPlugin
+                config={config}
+                data={alignedDataFrame}
+                frames={data.series}
+                mode={options.tooltip?.mode}
+                timeZone={timeZone}
+              />
+            );
           }}
         </TimeSeries>
         
