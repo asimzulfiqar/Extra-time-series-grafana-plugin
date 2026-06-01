@@ -147,7 +147,7 @@ docker run -d `
 ## Development
 
 ### Prerequisites
-- Node.js >= 22
+- Node.js 22 or 24
 - npm >= 10
 
 ### Setup

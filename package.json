@@ -2,7 +2,10 @@
   "name": "emmiasim67-extratimeseries-panel",
   "version": "1.1.0",
   "scripts": {
+    "check:node": "node ./scripts/check-node.cjs",
+    "prebuild": "npm run check:node",
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
+    "predev": "npm run check:node",
     "dev": "webpack -w -c ./.config/webpack/webpack.config.ts --env development",
     "test": "jest --watch --onlyChanged",
     "test:ci": "jest --passWithNoTests --maxWorkers 4",
@@ -63,7 +66,7 @@
     "webpack-virtual-modules": "^0.6.2"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22 <=24"
   },
   "dependencies": {
     "@emotion/css": "11.10.6",
