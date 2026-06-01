@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { css, cx } from '@emotion/css';
 import { DashboardCursorSync, PanelProps } from '@grafana/data';
-import { PanelDataErrorView, locationService } from '@grafana/runtime';
+import { PanelDataErrorView } from '@grafana/runtime';
 import { LegendDisplayMode, SortOrder, TooltipDisplayMode } from '@grafana/schema';
 import {
   Button,
@@ -90,15 +90,9 @@ export const SimplePanel: React.FC<Props> = ({
   };
 
   const handleEnlarge = () => {
-    const location = locationService.getLocation();
-    const dashboardMatch = location.pathname.match(/^(.*?)\/d\/([^/?]+)/);
-    if (!dashboardMatch) {
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-    params.set('viewPanel', id.toString());
-    window.open(`${dashboardMatch[1]}/d/${dashboardMatch[2]}?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    const url = new URL(window.location.href);
+    url.searchParams.set('viewPanel', id.toString());
+    window.open(url.toString(), '_blank', 'noopener,noreferrer');
   };
 
   const graphHeight = Math.max(0, height - TOOLBAR_HEIGHT);
