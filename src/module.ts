@@ -221,4 +221,5 @@ export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePan
     commonOptionsBuilder.addLegendOptions(builder);
 
     return builder;
-  });
+  })
+  .setDataSupport({ annotations: true, alertStates: true });

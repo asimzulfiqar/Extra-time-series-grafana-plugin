@@ -186,10 +186,10 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
 /**
  * Export panel as image
  */
-export const exportToImage = async (element: HTMLElement, filename: string) => {
+export const exportToImage = async (element: HTMLElement, filename: string, backgroundColor = '#ffffff') => {
   try {
     const canvas = await html2canvas(element, {
-      backgroundColor: '#ffffff',
+      backgroundColor,
       scale: 2,
       logging: false,
       useCORS: true,

@@ -1,400 +1,170 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { PanelProps } from '@grafana/data';
-import { SimpleOptions, ViewMode, ExportFormat } from 'types';
+import React, { useRef, useState } from 'react';
 import { css, cx } from '@emotion/css';
-import { useStyles2, useTheme2, Button, Modal, TimeSeries, TooltipPlugin } from '@grafana/ui';
+import { DashboardCursorSync, PanelProps } from '@grafana/data';
 import { PanelDataErrorView, locationService } from '@grafana/runtime';
 import { LegendDisplayMode, SortOrder, TooltipDisplayMode } from '@grafana/schema';
-import { TableView } from './TableView';
+import {
+  Button,
+  EventBusPlugin,
+  KeyboardPlugin,
+  TimeSeries,
+  TooltipPlugin2,
+  usePanelContext,
+  useStyles2,
+  useTheme2,
+} from '@grafana/ui';
+import { ExportFormat, SimpleOptions, ViewMode } from 'types';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
+import { AnnotationRange, AnnotationsPlugin } from './AnnotationsPlugin';
+import { NativeTooltip } from './NativeTooltip';
+import { TableView } from './TableView';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
-const getStyles = () => {
-  return {
-    wrapper: css`
-      font-family: Open Sans;
-      position: relative;
-    `,
-    actionBar: css`
-      display: flex;
-      gap: 8px;
-      padding: 8px;
-      flex-wrap: wrap;
-      background: rgba(0, 0, 0, 0.05);
-      border-radius: 4px;
-      margin-bottom: 8px;
-    `,
-    svg: css`
-      position: absolute;
-      top: 40px;
-      left: 0;
-    `,
-    textBox: css`
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      padding: 10px;
-    `,
-    exportMenu: css`
-      position: absolute;
-      margin-top: 40px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    `,
-  };
-};
+const TOOLBAR_HEIGHT = 48;
 
-export const SimplePanel: React.FC<Props> = ({ 
-  options, 
-  data, 
-  width, 
-  height, 
-  timeRange, 
-  timeZone, 
-  fieldConfig, 
+const getStyles = () => ({
+  wrapper: css`
+    font-family: Open Sans;
+    position: relative;
+  `,
+  actionBar: css`
+    display: flex;
+    gap: 8px;
+    padding: 4px 8px;
+    min-height: ${TOOLBAR_HEIGHT}px;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  `,
+  exportAnchor: css`
+    position: relative;
+  `,
+  exportMenu: css`
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 1000;
+    display: flex;
+    min-width: 120px;
+    flex-direction: column;
+    gap: 4px;
+  `,
+});
+
+export const SimplePanel: React.FC<Props> = ({
+  options,
+  data,
+  width,
+  height,
+  timeRange,
+  timeZone,
+  fieldConfig,
   id,
   onChangeTimeRange,
 }) => {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
-  const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Graph);
-  const [isEnlargeModalOpen, setIsEnlargeModalOpen] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const [currentTimeRange, setCurrentTimeRange] = useState(timeRange);
-  const [currentTimeZone, setCurrentTimeZone] = useState(timeZone);
-  const [originalTimeRange] = useState(timeRange); // Store original for reset
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<number | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
-  const graphRef = useRef<HTMLDivElement>(null);
-
-  // Update current time range and timezone whenever props change
-  useEffect(() => {
-    setCurrentTimeRange(timeRange);
-    setCurrentTimeZone(timeZone);
-  }, [timeRange, timeZone]);
-
-  const zoomByPercentage = React.useCallback((zoomFactor: number) => {
-    if (!onChangeTimeRange) {
-      return;
-    }
-
-    const from = typeof currentTimeRange.from === 'object' 
-      ? currentTimeRange.from.valueOf() 
-      : new Date(currentTimeRange.from).valueOf();
-    const to = typeof currentTimeRange.to === 'object' 
-      ? currentTimeRange.to.valueOf() 
-      : new Date(currentTimeRange.to).valueOf();
-
-    const range = to - from;
-    const adjustment = range * Math.abs(zoomFactor) / 2;
-
-    if (zoomFactor > 0) {
-      // Zoom in
-      onChangeTimeRange({
-        from: from + adjustment,
-        to: to - adjustment,
-      });
-    } else {
-      // Zoom out
-      onChangeTimeRange({
-        from: from - adjustment,
-        to: to + adjustment,
-      });
-    }
-  }, [currentTimeRange, onChangeTimeRange]);
-
-  // Convert pixel position to timestamp
-  const pixelToTimestamp = React.useCallback((pixelX: number, graphWidth: number): number => {
-    const from = typeof currentTimeRange.from === 'object' 
-      ? currentTimeRange.from.valueOf() 
-      : new Date(currentTimeRange.from).valueOf();
-    const to = typeof currentTimeRange.to === 'object' 
-      ? currentTimeRange.to.valueOf() 
-      : new Date(currentTimeRange.to).valueOf();
-    
-    const timeRange = to - from;
-    const ratio = pixelX / graphWidth;
-    return from + (timeRange * ratio);
-  }, [currentTimeRange]);
-
-  // Handle mouse selection
-  const handleMouseDown = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!graphRef.current || e.button !== 0) {
-      return;
-    }
-    
-    // Focus the graph when clicking on it
-    if (graphRef.current && 'focus' in graphRef.current) {
-      (graphRef.current as HTMLDivElement).focus();
-    }
-    
-    const rect = graphRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    
-    setIsSelecting(true);
-    setSelectionStart(x);
-    setSelectionEnd(x);
-  }, []);
-
-  const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isSelecting || !graphRef.current) {
-      return;
-    }
-    
-    const rect = graphRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    
-    // Clamp to graph bounds
-    const clampedX = Math.max(0, Math.min(x, rect.width));
-    setSelectionEnd(clampedX);
-  }, [isSelecting]);
-
-  const handleMouseUp = React.useCallback(() => {
-    setIsSelecting(false);
-    
-    if (selectionStart !== null && selectionEnd !== null && graphRef.current && onChangeTimeRange) {
-      const dragDistance = Math.abs(selectionEnd - selectionStart);
-      
-      // Only zoom if drag is significant (> 20 pixels to avoid accidental clicks)
-      if (dragDistance > 20) {
-        const rect = graphRef.current.getBoundingClientRect();
-        const graphWidth = rect.width;
-        const startTime = pixelToTimestamp(Math.min(selectionStart, selectionEnd), graphWidth);
-        const endTime = pixelToTimestamp(Math.max(selectionStart, selectionEnd), graphWidth);
-        
-        // Zoom directly on mouse release
-        onChangeTimeRange({
-          from: startTime,
-          to: endTime,
-        });
-        
-        // Clear selection after zoom
-        setSelectionStart(null);
-        setSelectionEnd(null);
-      } else {
-        // Clear if selection was too small
-        setSelectionStart(null);
-        setSelectionEnd(null);
-      }
-    } else {
-      // Clear if no valid selection
-      setSelectionStart(null);
-      setSelectionEnd(null);
-    }
-  }, [selectionStart, selectionEnd, pixelToTimestamp, onChangeTimeRange]);
-
-
-
-  // Keyboard shortcuts for zoom
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Check if panel or graph is focused
-      const isPanelFocused = panelRef.current?.contains(document.activeElement);
-      const isGraphFocused = graphRef.current?.contains(document.activeElement);
-      
-      if (!isPanelFocused && !isGraphFocused) {
-        return;
-      }
-
-      // Don't interfere with browser shortcuts
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        return;
-      }
-
-      switch (e.key.toLowerCase()) {
-        case 'r':
-          e.preventDefault();
-          // Reset to original time range
-          if (onChangeTimeRange) {
-            const from = typeof originalTimeRange.raw.from === 'object' 
-              ? originalTimeRange.raw.from.valueOf() 
-              : new Date(originalTimeRange.raw.from).valueOf();
-            const to = typeof originalTimeRange.raw.to === 'object' 
-              ? originalTimeRange.raw.to.valueOf() 
-              : new Date(originalTimeRange.raw.to).valueOf();
-            onChangeTimeRange({
-              from,
-              to,
-            });
-          }
-          break;
-        case '+':
-        case '=':
-          e.preventDefault();
-          // Zoom in 50%
-          zoomByPercentage(0.5);
-          break;
-        case '-':
-        case '_':
-          e.preventDefault();
-          // Zoom out 50%
-          zoomByPercentage(-0.5);
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [onChangeTimeRange, originalTimeRange, zoomByPercentage]);
-
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    if (viewMode !== ViewMode.Graph) {
-      return;
-    }
-    
-    if (e.shiftKey) {
-      // Shift + double-click: zoom out
-      zoomByPercentage(-0.5);
-    } else {
-      // Double-click: zoom in
-      zoomByPercentage(0.5);
-    }
-  };
+  const [newAnnotationRange, setNewAnnotationRange] = useState<AnnotationRange | null>(null);
+  const { canAddAnnotations, eventBus, eventsScope, sync } = usePanelContext();
+  const cursorSync = sync?.() ?? DashboardCursorSync.Off;
+  const canCreateAnnotations = Boolean(canAddAnnotations?.());
 
   if (data.series.length === 0) {
-    return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsStringField />;
+    return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsTimeField needsNumberField />;
   }
 
   const handleExport = async (format: ExportFormat) => {
     setExportMenuOpen(false);
 
-    try {
-      switch (format) {
-        case ExportFormat.CSV:
-          exportToCSV(data.series, 'timeseries-data');
-          break;
-        case ExportFormat.HTML:
-          exportToHTML(data.series, 'timeseries-data');
-          break;
-        case ExportFormat.Image:
-          if (contentRef.current) {
-            await exportToImage(contentRef.current, 'timeseries-panel');
-          }
-          break;
-      }
-    } catch (error) {
-      // Export failed
+    if (format === ExportFormat.CSV) {
+      exportToCSV(data.series, 'timeseries-data');
+    } else if (format === ExportFormat.HTML) {
+      exportToHTML(data.series, 'timeseries-data');
+    } else if (contentRef.current) {
+      await exportToImage(contentRef.current, 'timeseries-panel', theme.colors.background.primary);
     }
   };
 
   const handleEnlarge = () => {
-    // Get the base path from the current URL by finding everything before /d/
     const location = locationService.getLocation();
-    const currentPath = location.pathname;
-    const dashboardMatch = currentPath.match(/^(.*?)\/d\//);
-    const basePath = dashboardMatch ? dashboardMatch[1] : '';
-
-    // Get dashboard UID from the current URL
-    const dashboardMatch2 = currentPath.match(/\/d\/([^/?]+)/);
-    const dashboardUID = dashboardMatch2 ? dashboardMatch2[1] : '';
-
-    // Get current time range parameters from the URL to preserve the same format
-    const urlParams = new URLSearchParams(location.search);
-    const currentFrom = urlParams.get('from');
-    const currentTo = urlParams.get('to');
-    
-    // Use current URL parameters if available, otherwise use the timeRange object
-    const from = currentFrom || (typeof currentTimeRange.from === 'object' 
-      ? currentTimeRange.from.valueOf() 
-      : currentTimeRange.from);
-    const to = currentTo || (typeof currentTimeRange.to === 'object' 
-      ? currentTimeRange.to.valueOf() 
-      : currentTimeRange.to);
-
-    // Build the full dashboard URL with current time range and panel ID
-    const dashboardUrl = `${basePath}/d/${dashboardUID}?orgId=1&from=${encodeURIComponent(from.toString())}&to=${encodeURIComponent(to.toString())}&timezone=${encodeURIComponent(currentTimeZone)}&viewPanel=${id}`;
-    
-    window.open(dashboardUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const toggleViewMode = () => {
-    setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph);
-  };
-
-  const renderContent = (contentWidth: number, contentHeight: number) => {
-    if (viewMode === ViewMode.Table) {
-      return <TableView data={data.series} width={contentWidth} height={contentHeight} theme={theme} />;
+    const dashboardMatch = location.pathname.match(/^(.*?)\/d\/([^/?]+)/);
+    if (!dashboardMatch) {
+      return;
     }
 
-    // Time series graph view with zoom support
-    return (
-      <div 
-        ref={graphRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onDoubleClick={handleDoubleClick}
-        tabIndex={0}
-        className={css`
-          position: relative;
-          outline: none;
-          cursor: crosshair;
-          &:focus {
-            outline: 2px solid ${theme.colors.primary.border};
-            outline-offset: 2px;
-          }
-        `}
-      >
-        <TimeSeries
-          width={contentWidth}
-          height={contentHeight - 60}
-          timeRange={timeRange}
-          timeZone={timeZone}
-          frames={data.series}
-          legend={{
-            displayMode: options.legend?.displayMode || LegendDisplayMode.List,
-            placement: options.legend?.placement || 'bottom',
-            showLegend: options.legend?.showLegend ?? true,
-            calcs: options.legend?.calcs || [],
-            width: options.legend?.width,
-          }}
-        >
-          {(config, alignedDataFrame) => {
-            return (
-              options.tooltip?.mode !== TooltipDisplayMode.None && (
-                <TooltipPlugin
-                  config={config}
-                  data={alignedDataFrame}
-                  frames={data.series}
-                  mode={options.tooltip?.mode}
-                  sortOrder={options.tooltip?.sort || SortOrder.None}
-                  timeZone={timeZone}
-                />
-              )
-            );
-          }}
-        </TimeSeries>
-        
-        {/* Selection overlay - show during dragging AND after release */}
-        {selectionStart !== null && selectionEnd !== null && Math.abs(selectionEnd - selectionStart) > 5 && (
-          <div
-            className={css`
-              position: absolute;
-              top: 0;
-              left: ${Math.min(selectionStart, selectionEnd)}px;
-              width: ${Math.abs(selectionEnd - selectionStart)}px;
-              height: ${contentHeight - 60}px;
-              background: ${theme.colors.primary.main}33;
-              border-left: 2px solid ${theme.colors.primary.main};
-              border-right: 2px solid ${theme.colors.primary.main};
-              pointer-events: none;
-              ${!isSelecting && `
-                box-shadow: 0 0 10px ${theme.colors.primary.main}66;
-              `}
-            `}
-          />
-        )}
-
-      </div>
-    );
+    const params = new URLSearchParams(location.search);
+    params.set('viewPanel', id.toString());
+    window.open(`${dashboardMatch[1]}/d/${dashboardMatch[2]}?${params.toString()}`, '_blank', 'noopener,noreferrer');
   };
+
+  const graphHeight = Math.max(0, height - TOOLBAR_HEIGHT);
+
+  const renderGraph = () => (
+    <TimeSeries
+      width={width}
+      height={graphHeight}
+      timeRange={timeRange}
+      timeZone={timeZone}
+      frames={data.series}
+      structureRev={data.structureRev}
+      legend={{
+        displayMode: options.legend?.displayMode || LegendDisplayMode.List,
+        placement: options.legend?.placement || 'bottom',
+        showLegend: options.legend?.showLegend ?? true,
+        calcs: options.legend?.calcs || [],
+        width: options.legend?.width,
+      }}
+      options={options}
+    >
+      {(config, alignedFrame) => (
+        <>
+          <KeyboardPlugin config={config} />
+          {cursorSync !== DashboardCursorSync.Off && (
+            <EventBusPlugin config={config} eventBus={eventBus} frame={alignedFrame} />
+          )}
+          {options.tooltip?.mode !== TooltipDisplayMode.None && (
+            <TooltipPlugin2
+              config={config}
+              hoverMode={options.tooltip?.mode === TooltipDisplayMode.Multi ? 1 : 0}
+              queryZoom={onChangeTimeRange}
+              clientZoom
+              syncMode={cursorSync}
+              syncScope={eventsScope}
+              render={(_plot, dataIdxs, seriesIdx, _isPinned, dismiss, selectedRange) => {
+                if (canCreateAnnotations && selectedRange) {
+                  setNewAnnotationRange(selectedRange);
+                  dismiss();
+                  return null;
+                }
+
+                return (
+                  <NativeTooltip
+                    frame={alignedFrame}
+                    dataIdxs={dataIdxs}
+                    seriesIdx={seriesIdx}
+                    mode={options.tooltip?.mode || TooltipDisplayMode.Single}
+                    sortOrder={options.tooltip?.sort || SortOrder.None}
+                  />
+                );
+              }}
+              maxWidth={options.tooltip?.maxWidth}
+            />
+          )}
+          <AnnotationsPlugin
+            annotations={data.annotations ?? []}
+            config={config}
+            newRange={newAnnotationRange}
+            onDismiss={() => setNewAnnotationRange(null)}
+            timeZone={timeZone}
+          />
+        </>
+      )}
+    </TimeSeries>
+  );
 
   return (
     <div
@@ -405,34 +175,25 @@ export const SimplePanel: React.FC<Props> = ({
           height: ${height}px;
         `
       )}
-      ref={panelRef}
     >
-      {/* Action Bar */}
       <div className={styles.actionBar}>
         {options.showTableViewButton && (
           <Button
             size="sm"
             variant="secondary"
-            onClick={toggleViewMode}
+            onClick={() => setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph)}
             icon={viewMode === ViewMode.Graph ? 'table' : 'graph-bar'}
           >
             {viewMode === ViewMode.Graph ? 'Table View' : 'Graph View'}
           </Button>
         )}
-
         {options.showEnlargeButton && (
-          <Button
-            size="sm"
-            variant="secondary"
-            icon="expand-arrows"
-            onClick={handleEnlarge}
-          >
+          <Button size="sm" variant="secondary" icon="expand-arrows" onClick={handleEnlarge}>
             Enlarge
           </Button>
         )}
-
         {options.showExportButton && (
-          <>
+          <div className={styles.exportAnchor}>
             <Button
               size="sm"
               variant="secondary"
@@ -449,16 +210,10 @@ export const SimplePanel: React.FC<Props> = ({
                   border: 1px solid ${theme.colors.border.weak};
                   border-radius: 4px;
                   padding: 4px;
-                  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                  box-shadow: ${theme.shadows.z2};
                 `}
               >
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleExport(ExportFormat.CSV)}
-                  icon="file-alt"
-                  fullWidth
-                >
+                <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.CSV)} icon="file-alt">
                   CSV
                 </Button>
                 <Button
@@ -466,76 +221,29 @@ export const SimplePanel: React.FC<Props> = ({
                   variant="secondary"
                   onClick={() => handleExport(ExportFormat.HTML)}
                   icon="file-copy-alt"
-                  fullWidth
                 >
                   HTML
                 </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleExport(ExportFormat.Image)}
-                  icon="camera"
-                  fullWidth
-                >
+                <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.Image)} icon="camera">
                   Image
                 </Button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
-
-      {/* Panel Content */}
-      <div ref={contentRef}>
-        {renderContent(width, height)}
+      <div
+        ref={contentRef}
+        className={css`
+          background: ${theme.colors.background.primary};
+        `}
+      >
+        {viewMode === ViewMode.Graph ? (
+          renderGraph()
+        ) : (
+          <TableView data={data.series} width={width} height={graphHeight} theme={theme} />
+        )}
       </div>
-
-      {/* Enlarge Modal - fullscreen, no action bar, close button */}
-      {isEnlargeModalOpen && (
-        <Modal
-          title=""
-          isOpen={isEnlargeModalOpen}
-          onDismiss={() => setIsEnlargeModalOpen(false)}
-        >
-          <div
-            className={css`
-              width: 100vw;
-              height: 100vh;
-              background: ${theme.colors.background.primary};
-              position: relative;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            `}
-          >
-            <Button
-              size="md"
-              variant="destructive"
-              icon="times"
-              className={css`
-                position: absolute;
-                top: 24px;
-                right: 32px;
-                z-index: 10;
-              `}
-              onClick={() => setIsEnlargeModalOpen(false)}
-            >
-              Close
-            </Button>
-            <div
-              className={css`
-                width: 90vw;
-                height: 85vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-              `}
-            >
-              {renderContent(window.innerWidth * 0.9, window.innerHeight * 0.85)}
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 };
