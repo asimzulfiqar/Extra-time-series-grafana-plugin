@@ -29,17 +29,17 @@ A Grafana panel plugin that extends the native Time Series panel with export cap
    
    **Linux:**
    ```bash
-   sudo cp -r dist/ /var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
+   sudo cp -r dist/ /var/lib/grafana/plugins/emmiasim67-extratimeseries-panel
    ```
    
    **Windows:**
    ```powershell
-   Copy-Item -Path dist -Destination "C:\Program Files\GrafanaLabs\grafana\data\plugins\asimzulfiqar-extratimeseries-panel" -Recurse
+   Copy-Item -Path dist -Destination "C:\Program Files\GrafanaLabs\grafana\data\plugins\emmiasim67-extratimeseries-panel" -Recurse
    ```
    
    **macOS:**
    ```bash
-   sudo cp -r dist/ /usr/local/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel
+   sudo cp -r dist/ /usr/local/var/lib/grafana/plugins/emmiasim67-extratimeseries-panel
    ```
 
 4. **Configure** Grafana to allow unsigned plugins:
@@ -47,14 +47,14 @@ A Grafana panel plugin that extends the native Time Series panel with export cap
    Edit your `grafana.ini` file and add:
    ```ini
    [plugins]
-   allow_loading_unsigned_plugins = asimzulfiqar-extratimeseries-panel
+   allow_loading_unsigned_plugins = emmiasim67-extratimeseries-panel
    ```
    
    **Location of grafana.ini:**
    - Linux: `/etc/grafana/grafana.ini`
    - Windows: `C:\Program Files\GrafanaLabs\grafana\conf\grafana.ini`
    - macOS: `/usr/local/etc/grafana/grafana.ini`
-   - Docker: Use environment variable `-e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel`
+   - Docker: Use environment variable `-e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=emmiasim67-extratimeseries-panel`
 
 5. **Restart** Grafana:
    
@@ -91,8 +91,8 @@ If you're running Grafana in Docker:
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel \
-  -v /path/to/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel \
+  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=emmiasim67-extratimeseries-panel \
+  -v /path/to/dist:/var/lib/grafana/plugins/emmiasim67-extratimeseries-panel \
   --name=grafana \
   grafana/grafana
 ```
@@ -101,8 +101,8 @@ docker run -d \
 ```powershell
 docker run -d `
   -p 3000:3000 `
-  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=asimzulfiqar-extratimeseries-panel `
-  -v ${PWD}/dist:/var/lib/grafana/plugins/asimzulfiqar-extratimeseries-panel `
+  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=emmiasim67-extratimeseries-panel `
+  -v ${PWD}/dist:/var/lib/grafana/plugins/emmiasim67-extratimeseries-panel `
   --name=grafana `
   grafana/grafana
 ```
@@ -204,7 +204,7 @@ Extra-time-series-grafana-plugin/
 
 ### Plugin Not Appearing in Grafana
 
-1. **Check plugins directory**: Make sure the plugin folder is named exactly `asimzulfiqar-extratimeseries-panel`
+1. **Check plugins directory**: Make sure the plugin folder is named exactly `emmiasim67-extratimeseries-panel`
 2. **Check unsigned plugin config**: Verify `allow_loading_unsigned_plugins` is set in grafana.ini
 3. **Check Grafana logs**:
    - Linux: `sudo tail -f /var/log/grafana/grafana.log`
