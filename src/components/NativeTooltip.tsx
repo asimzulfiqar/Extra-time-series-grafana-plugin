@@ -2,6 +2,7 @@ import React from 'react';
 import { DataFrame, FieldType, formattedValueToString, getFieldDisplayName, getValueFormat } from '@grafana/data';
 import { SortOrder, TooltipDisplayMode } from '@grafana/schema';
 import { Button, SeriesTable } from '@grafana/ui';
+import { DerivedTooltipValue } from 'types';
 
 interface Props {
   frame: DataFrame;
@@ -9,7 +10,7 @@ interface Props {
   seriesIdx: number | null;
   mode: TooltipDisplayMode;
   sortOrder: SortOrder;
-  derivedTooltipValues: string[];
+  derivedTooltipValues: Array<DerivedTooltipValue | string>;
   onAddAnnotation?: () => void;
 }
 
@@ -21,23 +22,21 @@ interface TooltipRow {
   numeric?: number;
 }
 
-interface DerivedTooltipValueConfig {
-  label: string;
-  formula: string;
-  unit?: string;
-}
+const normalizeDerivedTooltipValue = (entry: DerivedTooltipValue | string): DerivedTooltipValue | undefined => {
+  if (typeof entry !== 'string') {
+    return entry.name && entry.formula ? entry : undefined;
+  }
 
-const splitDerivedTooltipValue = (entry: string): DerivedTooltipValueConfig | undefined => {
-  const [label, formula, unit] = entry.split('|').map((part) => part.trim());
+  const [name, formula, unit] = entry.split('|').map((part) => part.trim());
 
-  if (!label || !formula) {
+  if (!name || !formula) {
     return undefined;
   }
 
-  return { label, formula, unit };
+  return { name, formula, unit };
 };
 
-const evaluateDerivedFormula = (formula: string, value: number): number | undefined => {
+const evaluateDerivedFormula = (formula: string, variables: Map<string, number>): number | undefined => {
   let index = 0;
   const normalizedFormula = formula.trim();
 
@@ -56,6 +55,29 @@ const evaluateDerivedFormula = (formula: string, value: number): number | undefi
 
     index += match[0].length;
     return Number(match[0]);
+  };
+
+  const parseVariable = () => {
+    skipWhitespace();
+
+    if (normalizedFormula[index] === '[') {
+      const end = normalizedFormula.indexOf(']', index + 1);
+      if (end === -1) {
+        return undefined;
+      }
+
+      const name = normalizedFormula.slice(index + 1, end).trim();
+      index = end + 1;
+      return variables.get(name) ?? variables.get(name.toLowerCase());
+    }
+
+    const match = normalizedFormula.slice(index).match(/^[A-Za-z_][A-Za-z0-9_]*/);
+    if (!match) {
+      return undefined;
+    }
+
+    index += match[0].length;
+    return variables.get(match[0]) ?? variables.get(match[0].toLowerCase());
   };
 
   const parseFactor = (): number | undefined => {
@@ -83,13 +105,7 @@ const evaluateDerivedFormula = (formula: string, value: number): number | undefi
       return result;
     }
 
-    if (normalizedFormula.slice(index).match(/^(value|v)\b/i)) {
-      const match = normalizedFormula.slice(index).match(/^(value|v)\b/i)!;
-      index += match[0].length;
-      return value;
-    }
-
-    return parseNumber();
+    return parseNumber() ?? parseVariable();
   };
 
   const parseTerm = (): number | undefined => {
@@ -156,6 +172,15 @@ const formatDerivedValue = (value: number, unit?: string) => {
   return formattedValue === value.toString() ? `${value.toLocaleString()} ${unit}` : formattedValue;
 };
 
+const setVariable = (variables: Map<string, number>, name: string, value: number) => {
+  if (!name || variables.has(name)) {
+    return;
+  }
+
+  variables.set(name, value);
+  variables.set(name.toLowerCase(), value);
+};
+
 export const NativeTooltip = ({
   frame,
   dataIdxs,
@@ -188,10 +213,27 @@ export const NativeTooltip = ({
     .filter((row): row is NonNullable<typeof row> => row != null)
     .filter((row) => mode === TooltipDisplayMode.Multi || row.isActive);
 
-  const derivedConfigs = derivedTooltipValues.map(splitDerivedTooltipValue).filter((config) => config != null);
+  const derivedConfigs = derivedTooltipValues.map(normalizeDerivedTooltipValue).filter((config) => config != null);
   const visibleNumericFields = frame.fields.filter((field, fieldIndex) => {
     const dataIndex = dataIdxs[fieldIndex];
     return fieldIndex !== 0 && field.type === FieldType.number && dataIndex != null;
+  });
+  const queryVariables = new Map<string, number>();
+
+  visibleNumericFields.forEach((field) => {
+    const fieldIndex = frame.fields.indexOf(field);
+    const dataIndex = dataIdxs[fieldIndex];
+    if (dataIndex == null) {
+      return;
+    }
+
+    const numeric = field.display!(field.values[dataIndex]).numeric;
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+
+    setVariable(queryVariables, field.name, numeric);
+    setVariable(queryVariables, getFieldDisplayName(field, frame), numeric);
   });
 
   visibleNumericFields.forEach((field) => {
@@ -208,7 +250,11 @@ export const NativeTooltip = ({
     }
 
     derivedConfigs.forEach((config) => {
-      const derivedValue = evaluateDerivedFormula(config.formula, baseValue);
+      const variables = new Map(queryVariables);
+      setVariable(variables, 'value', baseValue);
+      setVariable(variables, 'v', baseValue);
+
+      const derivedValue = evaluateDerivedFormula(config.formula, variables);
       if (derivedValue == null) {
         return;
       }
@@ -217,8 +263,8 @@ export const NativeTooltip = ({
         color: baseDisplay.color,
         label:
           visibleNumericFields.length === 1
-            ? config.label
-            : `${getFieldDisplayName(field, frame)} ${config.label}`,
+            ? config.name
+            : `${getFieldDisplayName(field, frame)} ${config.name}`,
         value: formatDerivedValue(derivedValue, config.unit),
         isActive: fieldIndex === seriesIdx,
         numeric: derivedValue,

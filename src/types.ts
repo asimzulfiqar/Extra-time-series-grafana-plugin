@@ -5,7 +5,13 @@ export interface SimpleOptions extends OptionsWithLegend, OptionsWithTooltip {
   showEnlargeButton: boolean;
   showTableViewButton: boolean;
   annotationDisplayMode?: AnnotationDisplayMode;
-  derivedTooltipValues?: string[];
+  derivedTooltipValues?: DerivedTooltipValue[];
+}
+
+export interface DerivedTooltipValue {
+  name: string;
+  formula: string;
+  unit?: string;
 }
 
 export enum AnnotationDisplayMode {

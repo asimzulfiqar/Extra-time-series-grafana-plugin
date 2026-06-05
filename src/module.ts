@@ -12,6 +12,7 @@ import {
   VisibilityMode,
 } from '@grafana/schema';
 import { commonOptionsBuilder, getGraphFieldOptions } from '@grafana/ui';
+import { DerivedTooltipValuesEditor } from './components/DerivedTooltipValuesEditor';
 import { SimplePanel } from './components/SimplePanel';
 import { AnnotationDisplayMode, SimpleOptions } from './types';
 
@@ -228,12 +229,14 @@ export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePan
           ],
         },
       })
-      .addStringArray({
+      .addCustomEditor({
+        id: 'derivedTooltipValues',
         path: 'derivedTooltipValues',
         name: 'Derived tooltip values',
         description:
-          'Add calculated tooltip rows as "Label | formula | unit". Use value or v in formulas, for example "Temperature K | value + 273.15 | K".',
+          'Add calculated tooltip rows. Formula can use value/v and other query fields, for example "[Temperature C] + 273.15".',
         defaultValue: [],
+        editor: DerivedTooltipValuesEditor,
       });
 
     commonOptionsBuilder.addTooltipOptions(builder);
