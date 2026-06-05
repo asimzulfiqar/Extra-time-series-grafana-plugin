@@ -142,6 +142,7 @@ export const SimplePanel: React.FC<Props> = ({
                     seriesIdx={seriesIdx}
                     mode={options.tooltip?.mode || TooltipDisplayMode.Single}
                     sortOrder={options.tooltip?.sort || SortOrder.None}
+                    derivedTooltipValues={options.derivedTooltipValues ?? []}
                     onAddAnnotation={
                       canCreateAnnotations && isPinned
                         ? () => {

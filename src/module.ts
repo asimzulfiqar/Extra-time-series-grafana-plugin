@@ -227,6 +227,13 @@ export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePan
             { label: 'Text markers', value: AnnotationDisplayMode.Text },
           ],
         },
+      })
+      .addStringArray({
+        path: 'derivedTooltipValues',
+        name: 'Derived tooltip values',
+        description:
+          'Add calculated tooltip rows as "Label | formula | unit". Use value or v in formulas, for example "Temperature K | value + 273.15 | K".',
+        defaultValue: [],
       });
 
     commonOptionsBuilder.addTooltipOptions(builder);
