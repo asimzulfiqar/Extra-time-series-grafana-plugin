@@ -14,6 +14,7 @@ import {
   useTheme2,
 } from '@grafana/ui';
 import { AnnotationDisplayMode, ExportFormat, SimpleOptions, ViewMode } from 'types';
+import { getPlottableTimeSeriesFrames } from '../utils/dataFrames';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
 import { AnnotationRange, AnnotationsPlugin } from './AnnotationsPlugin';
 import { NativeTooltip } from './NativeTooltip';
@@ -72,9 +73,18 @@ export const SimplePanel: React.FC<Props> = ({
   const { canAddAnnotations, eventBus, eventsScope, sync } = usePanelContext();
   const cursorSync = sync?.() ?? DashboardCursorSync.Off;
   const canCreateAnnotations = Boolean(canAddAnnotations?.());
+  const graphFrames = getPlottableTimeSeriesFrames(data.series);
 
-  if (data.series.length === 0) {
-    return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsTimeField needsNumberField />;
+  if (graphFrames.length === 0) {
+    return (
+      <PanelDataErrorView
+        fieldConfig={fieldConfig}
+        panelId={id}
+        data={{ ...data, series: graphFrames }}
+        needsTimeField
+        needsNumberField
+      />
+    );
   }
 
   const handleExport = async (format: ExportFormat) => {
@@ -103,7 +113,7 @@ export const SimplePanel: React.FC<Props> = ({
       height={graphHeight}
       timeRange={timeRange}
       timeZone={timeZone}
-      frames={data.series}
+      frames={graphFrames}
       structureRev={data.structureRev}
       legend={{
         displayMode: options.legend?.displayMode || LegendDisplayMode.List,
