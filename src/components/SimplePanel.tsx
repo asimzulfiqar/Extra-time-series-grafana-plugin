@@ -14,7 +14,7 @@ import {
   useTheme2,
 } from '@grafana/ui';
 import { AnnotationDisplayMode, ExportFormat, SimpleOptions, ViewMode } from 'types';
-import { getPlottableTimeSeriesFrames } from '../utils/dataFrames';
+import { getPlottableTimeSeriesFrames, getVisualStructureRev } from '../utils/dataFrames';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
 import { AnnotationRange, AnnotationsPlugin } from './AnnotationsPlugin';
 import { NativeTooltip } from './NativeTooltip';
@@ -74,6 +74,7 @@ export const SimplePanel: React.FC<Props> = ({
   const cursorSync = sync?.() ?? DashboardCursorSync.Off;
   const canCreateAnnotations = Boolean(canAddAnnotations?.());
   const graphFrames = getPlottableTimeSeriesFrames(data.series);
+  const visualStructureRev = getVisualStructureRev(graphFrames, data.structureRev);
 
   if (graphFrames.length === 0) {
     return (
@@ -91,9 +92,9 @@ export const SimplePanel: React.FC<Props> = ({
     setExportMenuOpen(false);
 
     if (format === ExportFormat.CSV) {
-      exportToCSV(data.series, 'timeseries-data');
+      exportToCSV(graphFrames, 'timeseries-data');
     } else if (format === ExportFormat.HTML) {
-      exportToHTML(data.series, 'timeseries-data');
+      exportToHTML(graphFrames, 'timeseries-data');
     } else if (contentRef.current) {
       await exportToImage(contentRef.current, 'timeseries-panel', theme.colors.background.primary);
     }
@@ -114,7 +115,7 @@ export const SimplePanel: React.FC<Props> = ({
       timeRange={timeRange}
       timeZone={timeZone}
       frames={graphFrames}
-      structureRev={data.structureRev}
+      structureRev={visualStructureRev}
       legend={{
         displayMode: options.legend?.displayMode || LegendDisplayMode.List,
         placement: options.legend?.placement || 'bottom',
@@ -256,7 +257,7 @@ export const SimplePanel: React.FC<Props> = ({
         {viewMode === ViewMode.Graph ? (
           renderGraph()
         ) : (
-          <TableView data={data.series} width={width} height={graphHeight} theme={theme} />
+          <TableView data={graphFrames} width={width} height={graphHeight} theme={theme} />
         )}
       </div>
     </div>

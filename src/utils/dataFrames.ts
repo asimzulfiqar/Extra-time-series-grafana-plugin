@@ -1,16 +1,59 @@
-import { DataFrame, FieldType } from '@grafana/data';
+import { DataFrame, Field, FieldType } from '@grafana/data';
 
-export const getPlottableTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => {
-  return frames.filter((frame) => {
+export const isFieldHiddenFromViz = (field: Field): boolean => {
+  return Boolean(field.state?.hideFrom?.viz || field.config.custom?.hideFrom?.viz);
+};
+
+export const getVisibleTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => {
+  return frames.reduce<DataFrame[]>((visibleFrames, frame) => {
     const timeField = frame.fields?.find((field) => field?.type === FieldType.time);
     const rowCount = timeField?.values.length ?? 0;
 
     if (rowCount === 0) {
-      return false;
+      return visibleFrames;
     }
 
-    return frame.fields.some(
-      (field) => field?.type === FieldType.number && field.values.length === rowCount
+    const visibleValueFields = frame.fields.filter(
+      (field) => field?.type === FieldType.number && field.values.length === rowCount && !isFieldHiddenFromViz(field)
     );
-  });
+
+    if (visibleValueFields.length === 0 || !timeField) {
+      return visibleFrames;
+    }
+
+    visibleFrames.push({
+      ...frame,
+      fields: [timeField, ...visibleValueFields],
+      length: rowCount,
+    });
+
+    return visibleFrames;
+  }, []);
+};
+
+export const getPlottableTimeSeriesFrames = getVisibleTimeSeriesFrames;
+
+const hashString = (value: string): number => {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index++) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash) || 1;
+};
+
+export const getVisualStructureRev = (frames: DataFrame[], structureRev?: number): number => {
+  const visualConfig = frames.map((frame) => ({
+    name: frame.name,
+    fields: frame.fields.map((field) => ({
+      name: field.name,
+      type: field.type,
+      config: field.config,
+      hideFrom: field.state?.hideFrom,
+    })),
+  }));
+
+  return hashString(`${structureRev ?? 0}:${JSON.stringify(visualConfig)}`);
 };
