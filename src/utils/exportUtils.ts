@@ -1,5 +1,28 @@
-import { DataFrame } from '@grafana/data';
+import { DataFrame, getFieldDisplayName } from '@grafana/data';
 import html2canvas from 'html2canvas';
+
+const escapeCSVValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  const text = String(value);
+
+  if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  return text;
+};
+
+const escapeHTML = (value: unknown): string => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
 
 /**
  * Export data to CSV format
@@ -15,14 +38,11 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
     return;
   }
 
-  // Build headers: Time, Series1, Series2, etc.
-  let csvContent = 'Time';
+  let csvContent = escapeCSVValue('Time');
   series.forEach((dataFrame) => {
     const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
     valueFields.forEach((field) => {
-      const seriesName = dataFrame.name || 'Series';
-      const fieldName = field.name || 'Value';
-      csvContent += `,${seriesName} - ${fieldName}`;
+      csvContent += `,${escapeCSVValue(getFieldDisplayName(field, dataFrame, series))}`;
     });
   });
   csvContent += '\n';
@@ -36,14 +56,7 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
     series.forEach((dataFrame) => {
       const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
       valueFields.forEach((field) => {
-        const value = field.values[i];
-        if (value === null || value === undefined) {
-          csvContent += ',';
-        } else if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-          csvContent += `,"${value.replace(/"/g, '""')}"`;
-        } else {
-          csvContent += `,${value}`;
-        }
+        csvContent += `,${escapeCSVValue(field.values[i])}`;
       });
     });
 
@@ -140,9 +153,7 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
   series.forEach((dataFrame) => {
     const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
     valueFields.forEach((field) => {
-      const seriesName = dataFrame.name || 'Series';
-      const fieldName = field.name || 'Value';
-      htmlContent += `          <th>${seriesName} - ${fieldName}</th>\n`;
+      htmlContent += `          <th>${escapeHTML(getFieldDisplayName(field, dataFrame, series))}</th>\n`;
     });
   });
 
@@ -162,8 +173,7 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
       const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
       valueFields.forEach((field) => {
         const value = field.values[i];
-        const displayValue = value !== null && value !== undefined ? String(value) : '';
-        htmlContent += `          <td>${displayValue}</td>\n`;
+        htmlContent += `          <td>${escapeHTML(value)}</td>\n`;
       });
     });
 

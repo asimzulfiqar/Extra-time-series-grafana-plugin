@@ -1,5 +1,5 @@
 import React from 'react';
-import { DataFrame, GrafanaTheme2 } from '@grafana/data';
+import { DataFrame, GrafanaTheme2, getFieldDisplayName } from '@grafana/data';
 import { css } from '@emotion/css';
 
 interface Props {
@@ -45,7 +45,7 @@ export const TableView: React.FC<Props> = ({ data, width, height, theme }) => {
     const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
     valueFields.forEach((field) => {
       columns.push({
-        header: `${dataFrame.name || 'Series'} - ${field.name || 'Value'}`,
+        header: getFieldDisplayName(field, dataFrame, data),
         getValue: (row) => {
           const value = field.values[row];
           if (value === null || value === undefined) {
