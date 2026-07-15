@@ -88,7 +88,16 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
       setPlot(plot);
     });
 
+    config.addHook('destroy', () => {
+      plotRef.current = undefined;
+      setPlot(undefined);
+    });
+
     config.addHook('draw', (plot) => {
+      if (!plot.over.isConnected) {
+        return;
+      }
+
       setRenderRevision((revision) => revision + 1);
       const context = plot.ctx;
       context.save();
@@ -350,7 +359,7 @@ export const AnnotationsPlugin = ({ annotations, config, displayMode, newRange, 
 
   return (
     <>
-      {plot && createPortal(markers, plot.over)}
+      {plot?.over.isConnected && createPortal(markers, plot.over)}
       {newRange && onAnnotationCreate && (
         <Modal title="Add annotation" isOpen onDismiss={onDismiss}>
           <div

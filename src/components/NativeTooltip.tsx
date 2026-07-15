@@ -22,6 +22,15 @@ interface TooltipRow {
   numeric?: number;
 }
 
+const getDisplayValue = (field: DataFrame['fields'][number], value: unknown) => {
+  return (
+    field.display?.(value) ?? {
+      text: value == null ? '' : String(value),
+      numeric: typeof value === 'number' ? value : Number(value),
+    }
+  );
+};
+
 const normalizeDerivedTooltipValue = (entry: DerivedTooltipValue | string): DerivedTooltipValue | undefined => {
   if (typeof entry !== 'string') {
     return entry.name && entry.formula ? entry : undefined;
@@ -192,7 +201,8 @@ export const NativeTooltip = ({
 }: Props) => {
   const timeField = frame.fields[0];
   const timeIndex = dataIdxs[0];
-  const timestamp = timeIndex == null ? undefined : formattedValueToString(timeField.display!(timeField.values[timeIndex]));
+  const timestamp =
+    timeIndex == null ? undefined : formattedValueToString(getDisplayValue(timeField, timeField.values[timeIndex]));
 
   const rows: TooltipRow[] = frame.fields
     .map((field, fieldIndex) => {
@@ -201,7 +211,7 @@ export const NativeTooltip = ({
         return null;
       }
 
-      const display = field.display!(field.values[dataIndex]);
+      const display = getDisplayValue(field, field.values[dataIndex]);
       return {
         color: display.color,
         label: getFieldDisplayName(field, frame),
@@ -227,7 +237,7 @@ export const NativeTooltip = ({
       return;
     }
 
-    const numeric = field.display!(field.values[dataIndex]).numeric;
+    const numeric = getDisplayValue(field, field.values[dataIndex]).numeric;
     if (!Number.isFinite(numeric)) {
       return;
     }
@@ -243,7 +253,7 @@ export const NativeTooltip = ({
       return;
     }
 
-    const baseDisplay = field.display!(field.values[dataIndex]);
+    const baseDisplay = getDisplayValue(field, field.values[dataIndex]);
     const baseValue = baseDisplay.numeric;
     if (!Number.isFinite(baseValue)) {
       return;
