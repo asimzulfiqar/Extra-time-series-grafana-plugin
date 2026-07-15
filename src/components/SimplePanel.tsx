@@ -14,7 +14,7 @@ import {
   useTheme2,
 } from '@grafana/ui';
 import { AnnotationDisplayMode, ExportFormat, SimpleOptions, ViewMode } from 'types';
-import { getPlottableTimeSeriesFrames, getVisualStructureRev } from '../utils/dataFrames';
+import { getPlottableTimeSeriesFrames, getTableTimeSeriesFrames, getVisualStructureRev } from '../utils/dataFrames';
 import { exportToCSV, exportToHTML, exportToImage } from '../utils/exportUtils';
 import { AnnotationRange, AnnotationsPlugin } from './AnnotationsPlugin';
 import { NativeTooltip } from './NativeTooltip';
@@ -74,6 +74,7 @@ export const SimplePanel: React.FC<Props> = ({
   const cursorSync = sync?.() ?? DashboardCursorSync.Off;
   const canCreateAnnotations = Boolean(canAddAnnotations?.());
   const graphFrames = getPlottableTimeSeriesFrames(data.series);
+  const tableFrames = getTableTimeSeriesFrames(graphFrames);
   const visualStructureRev = getVisualStructureRev(graphFrames, data.structureRev);
 
   if (graphFrames.length === 0) {
@@ -92,9 +93,9 @@ export const SimplePanel: React.FC<Props> = ({
     setExportMenuOpen(false);
 
     if (format === ExportFormat.CSV) {
-      exportToCSV(graphFrames, 'timeseries-data');
+      exportToCSV(tableFrames, 'timeseries-data');
     } else if (format === ExportFormat.HTML) {
-      exportToHTML(graphFrames, 'timeseries-data');
+      exportToHTML(tableFrames, 'timeseries-data');
     } else if (contentRef.current) {
       await exportToImage(contentRef.current, 'timeseries-panel', theme.colors.background.primary);
     }
@@ -257,7 +258,7 @@ export const SimplePanel: React.FC<Props> = ({
         {viewMode === ViewMode.Graph ? (
           renderGraph()
         ) : (
-          <TableView data={graphFrames} width={width} height={graphHeight} theme={theme} />
+          <TableView data={tableFrames} width={width} height={graphHeight} theme={theme} />
         )}
       </div>
     </div>

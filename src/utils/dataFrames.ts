@@ -4,7 +4,11 @@ export const isFieldHiddenFromViz = (field: Field): boolean => {
   return Boolean(field.state?.hideFrom?.viz || field.config.custom?.hideFrom?.viz);
 };
 
-export const getVisibleTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => {
+export const isFieldHiddenFromTable = (field: Field): boolean => {
+  return Boolean(field.config.custom?.hideFromTable);
+};
+
+const getTimeSeriesFrames = (frames: DataFrame[], keepValueField: (field: Field) => boolean): DataFrame[] => {
   return frames.reduce<DataFrame[]>((visibleFrames, frame) => {
     const timeField = frame.fields?.find((field) => field?.type === FieldType.time);
     const rowCount = timeField?.values.length ?? 0;
@@ -14,7 +18,7 @@ export const getVisibleTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => 
     }
 
     const visibleValueFields = frame.fields.filter(
-      (field) => field?.type === FieldType.number && field.values.length === rowCount && !isFieldHiddenFromViz(field)
+      (field) => field?.type === FieldType.number && field.values.length === rowCount && keepValueField(field)
     );
 
     if (visibleValueFields.length === 0 || !timeField) {
@@ -29,6 +33,14 @@ export const getVisibleTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => 
 
     return visibleFrames;
   }, []);
+};
+
+export const getVisibleTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => {
+  return getTimeSeriesFrames(frames, (field) => !isFieldHiddenFromViz(field));
+};
+
+export const getTableTimeSeriesFrames = (frames: DataFrame[]): DataFrame[] => {
+  return getTimeSeriesFrames(frames, (field) => !isFieldHiddenFromTable(field));
 };
 
 export const getPlottableTimeSeriesFrames = getVisibleTimeSeriesFrames;

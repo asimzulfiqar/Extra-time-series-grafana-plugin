@@ -3,7 +3,6 @@ import {
   AxisPlacement,
   BarAlignment,
   GraphDrawStyle,
-  GraphFieldConfig,
   GraphGradientMode,
   GraphThresholdsStyleMode,
   GraphTransform,
@@ -14,9 +13,9 @@ import {
 import { commonOptionsBuilder, getGraphFieldOptions } from '@grafana/ui';
 import { DerivedTooltipValuesEditor } from './components/DerivedTooltipValuesEditor';
 import { SimplePanel } from './components/SimplePanel';
-import { AnnotationDisplayMode, SimpleOptions } from './types';
+import { AnnotationDisplayMode, ExtraTimeSeriesFieldConfig, SimpleOptions } from './types';
 
-const defaultGraphConfig: GraphFieldConfig = {
+const defaultGraphConfig: ExtraTimeSeriesFieldConfig = {
   drawStyle: GraphDrawStyle.Line,
   lineInterpolation: LineInterpolation.Linear,
   lineWidth: 1,
@@ -39,7 +38,7 @@ const defaultGraphConfig: GraphFieldConfig = {
   },
 };
 
-export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePanel)
+export const plugin = new PanelPlugin<SimpleOptions, ExtraTimeSeriesFieldConfig>(SimplePanel)
   .useFieldConfig({
     standardOptions: {
       [FieldConfigProperty.Color]: {
@@ -186,15 +185,23 @@ export const plugin = new PanelPlugin<SimpleOptions, GraphFieldConfig>(SimplePan
       commonOptionsBuilder.addAxisConfig(builder, defaultGraphConfig);
       commonOptionsBuilder.addHideFrom(builder);
 
-      builder.addRadio({
-        path: 'thresholdsStyle.mode',
-        name: 'Show thresholds',
-        category: ['Thresholds'],
-        defaultValue: GraphThresholdsStyleMode.Off,
-        settings: {
-          options: graphFieldOptions.thresholdsDisplayModes,
-        },
-      });
+      builder
+        .addBooleanSwitch({
+          path: 'hideFromTable',
+          name: 'Hide from table view',
+          category: ['Table view'],
+          defaultValue: false,
+          hideFromDefaults: true,
+        })
+        .addRadio({
+          path: 'thresholdsStyle.mode',
+          name: 'Show thresholds',
+          category: ['Thresholds'],
+          defaultValue: GraphThresholdsStyleMode.Off,
+          settings: {
+            options: graphFieldOptions.thresholdsDisplayModes,
+          },
+        });
     },
   })
   .setPanelOptions((builder) => {

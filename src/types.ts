@@ -1,4 +1,4 @@
-import { OptionsWithLegend, OptionsWithTooltip } from '@grafana/schema';
+import { GraphFieldConfig, OptionsWithLegend, OptionsWithTooltip } from '@grafana/schema';
 
 export interface SimpleOptions extends OptionsWithLegend, OptionsWithTooltip {
   showExportButton: boolean;
@@ -12,6 +12,10 @@ export interface DerivedTooltipValue {
   name: string;
   formula: string;
   unit?: string;
+}
+
+export interface ExtraTimeSeriesFieldConfig extends GraphFieldConfig {
+  hideFromTable?: boolean;
 }
 
 export enum AnnotationDisplayMode {

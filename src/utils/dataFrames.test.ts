@@ -1,5 +1,5 @@
 import { FieldType, toDataFrame } from '@grafana/data';
-import { getPlottableTimeSeriesFrames, getVisualStructureRev } from './dataFrames';
+import { getPlottableTimeSeriesFrames, getTableTimeSeriesFrames, getVisualStructureRev } from './dataFrames';
 
 describe('getPlottableTimeSeriesFrames', () => {
   it('keeps non-empty time series frames', () => {
@@ -76,5 +76,31 @@ describe('getPlottableTimeSeriesFrames', () => {
     frame.fields[1].config = { ...frame.fields[1].config, color: { mode: 'fixed', fixedColor: 'red' } };
 
     expect(getVisualStructureRev([frame], 1)).not.toBe(initialRev);
+  });
+
+  it('removes fields hidden from table view without requiring them to be hidden from the chart', () => {
+    const frame = toDataFrame({
+      name: 'Query',
+      fields: [
+        { name: 'Time', type: FieldType.time, values: [1, 2] },
+        { name: 'Chart and table', type: FieldType.number, values: [3, 4] },
+        {
+          name: 'Chart only',
+          type: FieldType.number,
+          values: [5, 6],
+          config: { custom: { hideFromTable: true } },
+        },
+      ],
+    });
+
+    expect(getPlottableTimeSeriesFrames([frame])[0].fields.map((field) => field.name)).toEqual([
+      'Time',
+      'Chart and table',
+      'Chart only',
+    ]);
+    expect(getTableTimeSeriesFrames([frame])[0].fields.map((field) => field.name)).toEqual([
+      'Time',
+      'Chart and table',
+    ]);
   });
 });
