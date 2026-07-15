@@ -191,7 +191,6 @@ export const plugin = new PanelPlugin<SimpleOptions, ExtraTimeSeriesFieldConfig>
           name: 'Hide from table view',
           category: ['Table view'],
           defaultValue: false,
-          hideFromDefaults: true,
         })
         .addRadio({
           path: 'thresholdsStyle.mode',
