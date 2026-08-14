@@ -4,6 +4,7 @@ export interface SimpleOptions extends OptionsWithLegend, OptionsWithTooltip {
   showExportButton: boolean;
   showEnlargeButton: boolean;
   showTableViewButton: boolean;
+  numberFormat?: NumberFormat;
   annotationDisplayMode?: AnnotationDisplayMode;
   derivedTooltipValues?: DerivedTooltipValue[];
 }
@@ -32,4 +33,9 @@ export enum ExportFormat {
   CSV = 'csv',
   HTML = 'html',
   Image = 'image',
+}
+
+export enum NumberFormat {
+  Default = 'default',
+  CommaDecimal = 'commaDecimal',
 }

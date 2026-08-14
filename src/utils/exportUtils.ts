@@ -1,5 +1,7 @@
 import { DataFrame, getFieldDisplayName } from '@grafana/data';
 import html2canvas from 'html2canvas';
+import { NumberFormat } from 'types';
+import { formatNumber } from './numberFormat';
 
 const escapeCSVValue = (value: unknown): string => {
   if (value === null || value === undefined) {
@@ -27,7 +29,7 @@ const escapeHTML = (value: unknown): string => {
 /**
  * Export data to CSV format
  */
-export const exportToCSV = (series: DataFrame[], filename: string) => {
+export const exportToCSV = (series: DataFrame[], filename: string, numberFormat = NumberFormat.Default) => {
   if (!series || series.length === 0) {
     return;
   }
@@ -56,7 +58,8 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
     series.forEach((dataFrame) => {
       const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
       valueFields.forEach((field) => {
-        csvContent += `,${escapeCSVValue(field.values[i])}`;
+        const value = field.values[i];
+        csvContent += `,${escapeCSVValue(typeof value === 'number' ? formatNumber(value, numberFormat) : value)}`;
       });
     });
 
@@ -72,7 +75,7 @@ export const exportToCSV = (series: DataFrame[], filename: string) => {
 /**
  * Export data to HTML format
  */
-export const exportToHTML = (series: DataFrame[], filename: string) => {
+export const exportToHTML = (series: DataFrame[], filename: string, numberFormat = NumberFormat.Default) => {
   if (!series || series.length === 0) {
     return;
   }
@@ -173,7 +176,7 @@ export const exportToHTML = (series: DataFrame[], filename: string) => {
       const valueFields = dataFrame.fields.filter((f) => f.type !== 'time');
       valueFields.forEach((field) => {
         const value = field.values[i];
-        htmlContent += `          <td>${escapeHTML(value)}</td>\n`;
+        htmlContent += `          <td>${escapeHTML(typeof value === 'number' ? formatNumber(value, numberFormat) : value)}</td>\n`;
       });
     });
 

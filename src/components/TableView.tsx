@@ -1,15 +1,18 @@
 import React from 'react';
 import { DataFrame, GrafanaTheme2, getFieldDisplayName } from '@grafana/data';
 import { css } from '@emotion/css';
+import { NumberFormat } from 'types';
+import { formatNumber } from '../utils/numberFormat';
 
 interface Props {
   data: DataFrame[];
   width: number;
   height: number;
   theme: GrafanaTheme2;
+  numberFormat?: NumberFormat;
 }
 
-export const TableView: React.FC<Props> = ({ data, width, height, theme }) => {
+export const TableView: React.FC<Props> = ({ data, width, height, theme, numberFormat }) => {
   if (!data || Array.isArray(data) && data.length === 0) {
     return (
       <div
@@ -52,7 +55,7 @@ export const TableView: React.FC<Props> = ({ data, width, height, theme }) => {
             return '';
           }
           if (typeof value === 'number') {
-            return value.toFixed(2);
+            return formatNumber(value, numberFormat, 2);
           }
           return String(value);
         },

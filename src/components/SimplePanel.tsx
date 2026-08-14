@@ -93,9 +93,9 @@ export const SimplePanel: React.FC<Props> = ({
     setExportMenuOpen(false);
 
     if (format === ExportFormat.CSV) {
-      exportToCSV(tableFrames, 'timeseries-data');
+      exportToCSV(tableFrames, 'timeseries-data', options.numberFormat);
     } else if (format === ExportFormat.HTML) {
-      exportToHTML(tableFrames, 'timeseries-data');
+      exportToHTML(tableFrames, 'timeseries-data', options.numberFormat);
     } else if (contentRef.current) {
       await exportToImage(contentRef.current, 'timeseries-panel', theme.colors.background.primary);
     }
@@ -155,6 +155,7 @@ export const SimplePanel: React.FC<Props> = ({
                     mode={options.tooltip?.mode || TooltipDisplayMode.Single}
                     sortOrder={options.tooltip?.sort || SortOrder.None}
                     derivedTooltipValues={options.derivedTooltipValues ?? []}
+                    numberFormat={options.numberFormat}
                     onAddAnnotation={
                       canCreateAnnotations && isPinned
                         ? () => {
@@ -258,7 +259,13 @@ export const SimplePanel: React.FC<Props> = ({
         {viewMode === ViewMode.Graph ? (
           renderGraph()
         ) : (
-          <TableView data={tableFrames} width={width} height={graphHeight} theme={theme} />
+          <TableView
+            data={tableFrames}
+            width={width}
+            height={graphHeight}
+            theme={theme}
+            numberFormat={options.numberFormat}
+          />
         )}
       </div>
     </div>

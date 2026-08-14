@@ -2,7 +2,8 @@ import React from 'react';
 import { DataFrame, FieldType, formattedValueToString, getFieldDisplayName, getValueFormat } from '@grafana/data';
 import { SortOrder, TooltipDisplayMode } from '@grafana/schema';
 import { Button, SeriesTable } from '@grafana/ui';
-import { DerivedTooltipValue } from 'types';
+import { DerivedTooltipValue, NumberFormat } from 'types';
+import { formatNumber } from '../utils/numberFormat';
 
 interface Props {
   frame: DataFrame;
@@ -11,6 +12,7 @@ interface Props {
   mode: TooltipDisplayMode;
   sortOrder: SortOrder;
   derivedTooltipValues: Array<DerivedTooltipValue | string>;
+  numberFormat?: NumberFormat;
   onAddAnnotation?: () => void;
 }
 
@@ -169,16 +171,16 @@ const evaluateDerivedFormula = (formula: string, variables: Map<string, number>)
   return result != null && index === normalizedFormula.length && Number.isFinite(result) ? result : undefined;
 };
 
-const formatDerivedValue = (value: number, unit?: string) => {
+const formatDerivedValue = (value: number, unit?: string, numberFormat = NumberFormat.Default) => {
   if (!unit) {
-    return value.toLocaleString();
+    return formatNumber(value, numberFormat);
   }
 
   const valueFormat = getValueFormat(unit);
   const formatted = valueFormat(value);
   const formattedValue = formattedValueToString(formatted);
 
-  return formattedValue === value.toString() ? `${value.toLocaleString()} ${unit}` : formattedValue;
+  return formattedValue === value.toString() ? `${formatNumber(value, numberFormat)} ${unit}` : formattedValue;
 };
 
 const setVariable = (variables: Map<string, number>, name: string, value: number) => {
@@ -197,6 +199,7 @@ export const NativeTooltip = ({
   mode,
   sortOrder,
   derivedTooltipValues,
+  numberFormat,
   onAddAnnotation,
 }: Props) => {
   const timeField = frame.fields[0];
@@ -275,7 +278,7 @@ export const NativeTooltip = ({
           visibleNumericFields.length === 1
             ? config.name
             : `${getFieldDisplayName(field, frame)} ${config.name}`,
-        value: formatDerivedValue(derivedValue, config.unit),
+        value: formatDerivedValue(derivedValue, config.unit, numberFormat),
         isActive: fieldIndex === seriesIdx,
         numeric: derivedValue,
       });

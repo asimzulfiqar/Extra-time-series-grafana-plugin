@@ -13,7 +13,7 @@ import {
 import { commonOptionsBuilder, getGraphFieldOptions } from '@grafana/ui';
 import { DerivedTooltipValuesEditor } from './components/DerivedTooltipValuesEditor';
 import { SimplePanel } from './components/SimplePanel';
-import { AnnotationDisplayMode, ExtraTimeSeriesFieldConfig, SimpleOptions } from './types';
+import { AnnotationDisplayMode, ExtraTimeSeriesFieldConfig, NumberFormat, SimpleOptions } from './types';
 
 const defaultGraphConfig: ExtraTimeSeriesFieldConfig = {
   drawStyle: GraphDrawStyle.Line,
@@ -222,6 +222,18 @@ export const plugin = new PanelPlugin<SimpleOptions, ExtraTimeSeriesFieldConfig>
         name: 'Show Table View Button',
         description: 'Display table view toggle button',
         defaultValue: true,
+      })
+      .addRadio({
+        path: 'numberFormat',
+        name: 'Number separators',
+        description: 'Controls numeric separators in table view, CSV export, HTML export, and plain derived tooltip values.',
+        defaultValue: NumberFormat.Default,
+        settings: {
+          options: [
+            { label: 'Default (1234.56)', value: NumberFormat.Default },
+            { label: 'Comma decimal (1.234,56)', value: NumberFormat.CommaDecimal },
+          ],
+        },
       })
       .addRadio({
         path: 'annotationDisplayMode',
