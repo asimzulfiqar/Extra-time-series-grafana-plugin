@@ -22,33 +22,12 @@ import { TableView } from './TableView';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
-const HEADER_HEIGHT = 76;
+const TOOLBAR_HEIGHT = 40;
 
 const getStyles = (theme: GrafanaTheme2) => ({
   wrapper: css`
     font-family: Open Sans;
     position: relative;
-  `,
-  header: css`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: ${theme.spacing(0.5)};
-    min-height: ${HEADER_HEIGHT}px;
-    padding: ${theme.spacing(0.5)} ${theme.spacing(1)};
-    background: ${theme.colors.background.primary};
-    border-bottom: 1px solid ${theme.colors.border.weak};
-  `,
-  panelTitle: css`
-    width: 100%;
-    color: ${theme.colors.text.primary};
-    font-size: ${theme.typography.bodySmall.fontSize};
-    font-weight: ${theme.typography.fontWeightMedium};
-    line-height: ${theme.typography.bodySmall.lineHeight};
-    overflow: hidden;
-    text-align: right;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   `,
   actionBar: css`
     display: flex;
@@ -56,6 +35,8 @@ const getStyles = (theme: GrafanaTheme2) => ({
     flex-wrap: wrap;
     justify-content: flex-end;
     align-items: center;
+    min-height: ${TOOLBAR_HEIGHT}px;
+    padding: ${theme.spacing(0.5)} ${theme.spacing(1)};
   `,
   exportAnchor: css`
     position: relative;
@@ -77,7 +58,6 @@ export const SimplePanel: React.FC<Props> = ({
   data,
   width,
   height,
-  title,
   timeRange,
   timeZone,
   fieldConfig,
@@ -115,7 +95,7 @@ export const SimplePanel: React.FC<Props> = ({
     window.open(url.toString(), '_blank', 'noopener,noreferrer');
   };
 
-  const contentHeight = Math.max(0, height - HEADER_HEIGHT);
+  const contentHeight = Math.max(0, height - TOOLBAR_HEIGHT);
 
   const renderGraph = () => (
     <TimeSeries
@@ -202,66 +182,61 @@ export const SimplePanel: React.FC<Props> = ({
         `
       )}
     >
-      <div className={styles.header}>
-        <div className={styles.panelTitle} title={title}>
-          {title}
-        </div>
-        <div className={styles.actionBar}>
-          {options.showTableViewButton && (
+      <div className={styles.actionBar}>
+        {options.showTableViewButton && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph)}
+            icon={viewMode === ViewMode.Graph ? 'table' : 'graph-bar'}
+          >
+            {viewMode === ViewMode.Graph ? 'Table View' : 'Graph View'}
+          </Button>
+        )}
+        {options.showEnlargeButton && (
+          <Button size="sm" variant="secondary" icon="expand-arrows" onClick={handleEnlarge}>
+            Enlarge
+          </Button>
+        )}
+        {options.showExportButton && (
+          <div className={styles.exportAnchor}>
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph)}
-              icon={viewMode === ViewMode.Graph ? 'table' : 'graph-bar'}
+              onClick={() => setExportMenuOpen(!exportMenuOpen)}
+              icon="download-alt"
             >
-              {viewMode === ViewMode.Graph ? 'Table View' : 'Graph View'}
+              Export
             </Button>
-          )}
-          {options.showEnlargeButton && (
-            <Button size="sm" variant="secondary" icon="expand-arrows" onClick={handleEnlarge}>
-              Enlarge
-            </Button>
-          )}
-          {options.showExportButton && (
-            <div className={styles.exportAnchor}>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setExportMenuOpen(!exportMenuOpen)}
-                icon="download-alt"
+            {exportMenuOpen && (
+              <div
+                className={css`
+                  ${styles.exportMenu}
+                  background: ${theme.colors.background.primary};
+                  border: 1px solid ${theme.colors.border.weak};
+                  border-radius: ${theme.shape.radius.default};
+                  padding: ${theme.spacing(0.5)};
+                  box-shadow: ${theme.shadows.z2};
+                `}
               >
-                Export
-              </Button>
-              {exportMenuOpen && (
-                <div
-                  className={css`
-                    ${styles.exportMenu}
-                    background: ${theme.colors.background.primary};
-                    border: 1px solid ${theme.colors.border.weak};
-                    border-radius: ${theme.shape.radius.default};
-                    padding: ${theme.spacing(0.5)};
-                    box-shadow: ${theme.shadows.z2};
-                  `}
+                <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.CSV)} icon="file-alt">
+                  CSV
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handleExport(ExportFormat.HTML)}
+                  icon="file-copy-alt"
                 >
-                  <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.CSV)} icon="file-alt">
-                    CSV
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleExport(ExportFormat.HTML)}
-                    icon="file-copy-alt"
-                  >
-                    HTML
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.Image)} icon="camera">
-                    Image
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                  HTML
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.Image)} icon="camera">
+                  Image
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <div
         ref={contentRef}
