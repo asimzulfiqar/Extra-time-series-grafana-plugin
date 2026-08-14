@@ -18,3 +18,14 @@ export const formatNumber = (value: number, numberFormat = NumberFormat.Default,
 
   return fixedDecimals === 2 ? value.toFixed(2) : String(value);
 };
+
+export const formatNumericText = (value: string, numberFormat = NumberFormat.Default): string => {
+  if (numberFormat !== NumberFormat.CommaDecimal) {
+    return value;
+  }
+
+  return value.replace(/(-?\d{1,3}(?:,\d{3})+|-?\d+)(?:\.(\d+))?/g, (match, integerPart, fractionalPart) => {
+    const localizedInteger = String(integerPart).replace(/,/g, '.');
+    return fractionalPart == null ? localizedInteger : `${localizedInteger},${fractionalPart}`;
+  });
+};

@@ -3,7 +3,7 @@ import { DataFrame, FieldType, formattedValueToString, getFieldDisplayName, getV
 import { SortOrder, TooltipDisplayMode } from '@grafana/schema';
 import { Button, SeriesTable } from '@grafana/ui';
 import { DerivedTooltipValue, NumberFormat } from 'types';
-import { formatNumber } from '../utils/numberFormat';
+import { formatNumber, formatNumericText } from '../utils/numberFormat';
 
 interface Props {
   frame: DataFrame;
@@ -31,6 +31,17 @@ const getDisplayValue = (field: DataFrame['fields'][number], value: unknown) => 
       numeric: typeof value === 'number' ? value : Number(value),
     }
   );
+};
+
+const formatDisplayValue = (display: ReturnType<typeof getDisplayValue>, numberFormat = NumberFormat.Default) => {
+  if (numberFormat === NumberFormat.Default) {
+    return formattedValueToString(display);
+  }
+
+  return formattedValueToString({
+    ...display,
+    text: formatNumericText(display.text, numberFormat),
+  });
 };
 
 const normalizeDerivedTooltipValue = (entry: DerivedTooltipValue | string): DerivedTooltipValue | undefined => {
@@ -180,7 +191,12 @@ const formatDerivedValue = (value: number, unit?: string, numberFormat = NumberF
   const formatted = valueFormat(value);
   const formattedValue = formattedValueToString(formatted);
 
-  return formattedValue === value.toString() ? `${formatNumber(value, numberFormat)} ${unit}` : formattedValue;
+  return formattedValue === value.toString()
+    ? `${formatNumber(value, numberFormat)} ${unit}`
+    : formattedValueToString({
+        ...formatted,
+        text: formatNumericText(formatted.text, numberFormat),
+      });
 };
 
 const setVariable = (variables: Map<string, number>, name: string, value: number) => {
@@ -218,7 +234,7 @@ export const NativeTooltip = ({
       return {
         color: display.color,
         label: getFieldDisplayName(field, frame),
-        value: formattedValueToString(display),
+        value: formatDisplayValue(display, numberFormat),
         isActive: fieldIndex === seriesIdx,
         numeric: display.numeric,
       };

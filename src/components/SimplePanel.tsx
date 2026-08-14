@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { css, cx } from '@emotion/css';
-import { DashboardCursorSync, PanelProps } from '@grafana/data';
+import { DashboardCursorSync, GrafanaTheme2, PanelProps } from '@grafana/data';
 import { PanelDataErrorView } from '@grafana/runtime';
 import { LegendDisplayMode, SortOrder, TooltipDisplayMode } from '@grafana/schema';
 import {
@@ -22,21 +22,40 @@ import { TableView } from './TableView';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
-const TOOLBAR_HEIGHT = 48;
+const HEADER_HEIGHT = 76;
 
-const getStyles = () => ({
+const getStyles = (theme: GrafanaTheme2) => ({
   wrapper: css`
     font-family: Open Sans;
     position: relative;
   `,
+  header: css`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: ${theme.spacing(0.5)};
+    min-height: ${HEADER_HEIGHT}px;
+    padding: ${theme.spacing(0.5)} ${theme.spacing(1)};
+    background: ${theme.colors.background.primary};
+    border-bottom: 1px solid ${theme.colors.border.weak};
+  `,
+  panelTitle: css`
+    width: 100%;
+    color: ${theme.colors.text.primary};
+    font-size: ${theme.typography.bodySmall.fontSize};
+    font-weight: ${theme.typography.fontWeightMedium};
+    line-height: ${theme.typography.bodySmall.lineHeight};
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
   actionBar: css`
     display: flex;
     gap: 8px;
-    padding: 4px 8px;
-    min-height: ${TOOLBAR_HEIGHT}px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: center;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
   `,
   exportAnchor: css`
     position: relative;
@@ -58,6 +77,7 @@ export const SimplePanel: React.FC<Props> = ({
   data,
   width,
   height,
+  title,
   timeRange,
   timeZone,
   fieldConfig,
@@ -77,18 +97,6 @@ export const SimplePanel: React.FC<Props> = ({
   const tableFrames = getTableTimeSeriesFrames(graphFrames);
   const visualStructureRev = getVisualStructureRev(graphFrames, data.structureRev);
 
-  if (graphFrames.length === 0) {
-    return (
-      <PanelDataErrorView
-        fieldConfig={fieldConfig}
-        panelId={id}
-        data={{ ...data, series: graphFrames }}
-        needsTimeField
-        needsNumberField
-      />
-    );
-  }
-
   const handleExport = async (format: ExportFormat) => {
     setExportMenuOpen(false);
 
@@ -107,12 +115,12 @@ export const SimplePanel: React.FC<Props> = ({
     window.open(url.toString(), '_blank', 'noopener,noreferrer');
   };
 
-  const graphHeight = Math.max(0, height - TOOLBAR_HEIGHT);
+  const contentHeight = Math.max(0, height - HEADER_HEIGHT);
 
   const renderGraph = () => (
     <TimeSeries
       width={width}
-      height={graphHeight}
+      height={contentHeight}
       timeRange={timeRange}
       timeZone={timeZone}
       frames={graphFrames}
@@ -194,75 +202,89 @@ export const SimplePanel: React.FC<Props> = ({
         `
       )}
     >
-      <div className={styles.actionBar}>
-        {options.showTableViewButton && (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph)}
-            icon={viewMode === ViewMode.Graph ? 'table' : 'graph-bar'}
-          >
-            {viewMode === ViewMode.Graph ? 'Table View' : 'Graph View'}
-          </Button>
-        )}
-        {options.showEnlargeButton && (
-          <Button size="sm" variant="secondary" icon="expand-arrows" onClick={handleEnlarge}>
-            Enlarge
-          </Button>
-        )}
-        {options.showExportButton && (
-          <div className={styles.exportAnchor}>
+      <div className={styles.header}>
+        <div className={styles.panelTitle} title={title}>
+          {title}
+        </div>
+        <div className={styles.actionBar}>
+          {options.showTableViewButton && (
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setExportMenuOpen(!exportMenuOpen)}
-              icon="download-alt"
+              onClick={() => setViewMode(viewMode === ViewMode.Graph ? ViewMode.Table : ViewMode.Graph)}
+              icon={viewMode === ViewMode.Graph ? 'table' : 'graph-bar'}
             >
-              Export
+              {viewMode === ViewMode.Graph ? 'Table View' : 'Graph View'}
             </Button>
-            {exportMenuOpen && (
-              <div
-                className={css`
-                  ${styles.exportMenu}
-                  background: ${theme.colors.background.primary};
-                  border: 1px solid ${theme.colors.border.weak};
-                  border-radius: 4px;
-                  padding: 4px;
-                  box-shadow: ${theme.shadows.z2};
-                `}
+          )}
+          {options.showEnlargeButton && (
+            <Button size="sm" variant="secondary" icon="expand-arrows" onClick={handleEnlarge}>
+              Enlarge
+            </Button>
+          )}
+          {options.showExportButton && (
+            <div className={styles.exportAnchor}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setExportMenuOpen(!exportMenuOpen)}
+                icon="download-alt"
               >
-                <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.CSV)} icon="file-alt">
-                  CSV
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => handleExport(ExportFormat.HTML)}
-                  icon="file-copy-alt"
+                Export
+              </Button>
+              {exportMenuOpen && (
+                <div
+                  className={css`
+                    ${styles.exportMenu}
+                    background: ${theme.colors.background.primary};
+                    border: 1px solid ${theme.colors.border.weak};
+                    border-radius: ${theme.shape.radius.default};
+                    padding: ${theme.spacing(0.5)};
+                    box-shadow: ${theme.shadows.z2};
+                  `}
                 >
-                  HTML
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.Image)} icon="camera">
-                  Image
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+                  <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.CSV)} icon="file-alt">
+                    CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleExport(ExportFormat.HTML)}
+                    icon="file-copy-alt"
+                  >
+                    HTML
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => handleExport(ExportFormat.Image)} icon="camera">
+                    Image
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
       <div
         ref={contentRef}
         className={css`
           background: ${theme.colors.background.primary};
+          height: ${contentHeight}px;
         `}
       >
-        {viewMode === ViewMode.Graph ? (
+        {graphFrames.length === 0 ? (
+          <PanelDataErrorView
+            fieldConfig={fieldConfig}
+            panelId={id}
+            data={{ ...data, series: graphFrames }}
+            needsTimeField
+            needsNumberField
+          />
+        ) : viewMode === ViewMode.Graph ? (
           renderGraph()
         ) : (
           <TableView
             data={tableFrames}
             width={width}
-            height={graphHeight}
+            height={contentHeight}
             theme={theme}
             numberFormat={options.numberFormat}
           />
