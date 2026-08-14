@@ -184,7 +184,7 @@ export const SimplePanel: React.FC<Props> = ({
         `
       )}
     >
-      <div className={styles.actionBar}>
+      <div className={styles.actionBar} style={{ justifyContent: 'flex-start', width: '100%' }}>
         {options.showTableViewButton && (
           <Button
             size="sm"
