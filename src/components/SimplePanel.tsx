@@ -35,6 +35,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
     padding: 4px 8px;
     min-height: ${TOOLBAR_HEIGHT}px;
     flex-wrap: wrap;
+    justify-content: flex-start;
     align-items: center;
     background: rgba(0, 0, 0, 0.05);
     border-radius: 4px;
