@@ -22,9 +22,7 @@ import { TableView } from './TableView';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
-const NATIVE_HEADER_CLEARANCE = 32;
-const TOOLBAR_HEIGHT = 40;
-const PANEL_TOP_CONTROLS_HEIGHT = NATIVE_HEADER_CLEARANCE + TOOLBAR_HEIGHT;
+const TOOLBAR_HEIGHT = 48;
 
 const getStyles = (theme: GrafanaTheme2) => ({
   wrapper: css`
@@ -34,11 +32,12 @@ const getStyles = (theme: GrafanaTheme2) => ({
   actionBar: css`
     display: flex;
     gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    align-items: center;
+    padding: 4px 8px;
     min-height: ${TOOLBAR_HEIGHT}px;
-    padding: ${NATIVE_HEADER_CLEARANCE}px ${theme.spacing(5)} ${theme.spacing(0.5)} ${theme.spacing(1)};
+    flex-wrap: wrap;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
   `,
   exportAnchor: css`
     position: relative;
@@ -97,7 +96,7 @@ export const SimplePanel: React.FC<Props> = ({
     window.open(url.toString(), '_blank', 'noopener,noreferrer');
   };
 
-  const contentHeight = Math.max(0, height - PANEL_TOP_CONTROLS_HEIGHT);
+  const contentHeight = Math.max(0, height - TOOLBAR_HEIGHT);
 
   const renderGraph = () => (
     <TimeSeries
